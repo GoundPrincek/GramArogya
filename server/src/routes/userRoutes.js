@@ -9,6 +9,9 @@ router.use(protect);
 // Current user profile management
 router.get('/me', userController.getMyProfile);
 router.patch('/me', userController.updateMyProfile);
+router.get('/profile', userController.getMyProfile);
+router.put('/profile', userController.updateMyProfile);
+router.patch('/profile', userController.updateMyProfile);
 
 // Administrator management
 router.get('/', authorize('admin'), userController.getAllUsers);

@@ -16,6 +16,11 @@ router.post(
 );
 
 router.get('/', referralController.getReferrals);
+router.get('/my', referralController.getReferrals);
+router.get('/facility/:facilityId', (req, res, next) => {
+  req.query.facility = req.params.facilityId;
+  return referralController.getReferrals(req, res, next);
+});
 router.get('/:id', referralController.getReferralById);
 
 router.patch(
@@ -23,6 +28,15 @@ router.patch(
   authorize('staff', 'doctor', 'admin'),
   validateUpdateStatus,
   referralController.updateStatus
+);
+
+router.put(
+  '/:id/triage',
+  authorize('staff', 'doctor', 'admin'),
+  (req, res, next) => {
+    req.body.note = req.body.actionNotes || req.body.note;
+    return referralController.updateStatus(req, res, next);
+  }
 );
 
 module.exports = router;

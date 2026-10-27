@@ -36,11 +36,15 @@ export const AppointmentRequestModal = ({ isOpen, onClose, facility, onSuccess }
   const [submitting, setSubmitting] = useState(false);
 
   // Available services from facility demonstration data
-  const availableServices = facility?.servicesAvailable || [
-    'General OPD Consultation',
-    'Maternal & Antenatal Checkup',
-    'Infant & Child Immunization'
-  ];
+  const availableServices = (facility?.services && facility.services.length > 0)
+    ? facility.services
+    : (facility?.servicesAvailable && facility.servicesAvailable.length > 0)
+      ? facility.servicesAvailable
+      : [
+          'General OPD Consultation',
+          'Maternal & Antenatal Checkup',
+          'Infant & Child Immunization'
+        ];
 
   // Minimum date is tomorrow
   const tomorrow = new Date();

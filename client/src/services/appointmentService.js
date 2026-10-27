@@ -5,53 +5,86 @@ import {
   updateStoredAppointmentStatus
 } from './storageService';
 
-const USE_MOCK = import.meta.env.VITE_USE_MOCK !== 'false';
+const USE_MOCK = import.meta.env.VITE_USE_MOCK === 'true';
 
 export const appointmentService = {
   async bookAppointment(data) {
-    if (USE_MOCK) {
-      const created = addStoredAppointment(data);
-      return { success: true, data: created };
+    if (!USE_MOCK) {
+      try {
+        const response = await api.post('/appointments', data);
+        return response.data;
+      } catch (err) {
+        if (err.response) throw err;
+        console.warn('[API Warning] Backend unreachable, falling back to local storage');
+      }
     }
 
-    const response = await api.post('/appointments', data);
-    return response.data;
+    const created = addStoredAppointment(data);
+    return { success: true, data: created };
   },
 
   async getMyAppointments() {
-    if (USE_MOCK) {
-      const list = getStoredAppointments();
-      return { success: true, data: list };
+    if (!USE_MOCK) {
+      try {
+        const response = await api.get('/appointments/my');
+        return response.data;
+      } catch (err) {
+        if (err.response) throw err;
+      }
     }
 
-    const response = await api.get('/appointments/my');
-    return response.data;
+    const list = getStoredAppointments();
+    return { success: true, data: list };
   },
 
   async getFacilityAppointments(facilityId) {
-    if (USE_MOCK) {
-      const list = getStoredAppointments();
-      const filtered = facilityId
-        ? list.filter((a) => a.facilityId === facilityId)
-        : list;
-      return { success: true, data: filtered };
+    if (!USE_MOCK) {
+      try {
+        const response = await api.get(facilityId ? `/appointments/facility/${facilityId}` : '/appointments');
+        return response.data;
+      } catch (err) {
+        if (err.response) throw err;
+      }
     }
 
-    const response = await api.get(`/appointments/facility/${facilityId}`);
-    return response.data;
+    const list = getStoredAppointments();
+    const filtered = facilityId
+      ? list.filter((a) => a.facilityId === facilityId)
+      : list;
+    return { success: true, data: filtered };
   },
 
-  async updateAppointmentStatus(id, status, consultationNotes = '') {
-    if (USE_MOCK) {
-      const updated = updateStoredAppointmentStatus(id, status, consultationNotes);
-      return { success: true, data: updated };
+  async updateAppointmentStatus(id, status, consultationNotes = '', decisionReason = '') {
+    if (!USE_MOCK) {
+      try {
+        const response = await api.put(`/appointments/${id}/status`, {
+          status,
+          consultationNotes,
+          decisionReason: decisionReason || consultationNotes,
+          reason: decisionReason || consultationNotes
+        });
+        return response.data;
+      } catch (err) {
+        if (err.response) throw err;
+      }
     }
 
-    const response = await api.put(`/appointments/${id}/status`, {
-      status,
-      consultationNotes
-    });
-    return response.data;
+    const updated = updateStoredAppointmentStatus(id, status, consultationNotes);
+    return { success: true, data: updated };
+  },
+
+  async cancelAppointment(id, reason = '') {
+    if (!USE_MOCK) {
+      try {
+        const response = await api.patch(`/appointments/${id}/cancel`, { reason });
+        return response.data;
+      } catch (err) {
+        if (err.response) throw err;
+      }
+    }
+
+    const updated = updateStoredAppointmentStatus(id, 'cancelled', reason);
+    return { success: true, data: updated };
   }
 };
 

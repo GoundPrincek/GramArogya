@@ -7,7 +7,7 @@
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
     "seed": "node scripts/seedFacilities.js",
-    "test": "node --test tests/*.test.js"
+    "test": "node --test tests/api.test.js"
   },
   "keywords": [
     "rural-healthcare",

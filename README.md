@@ -198,23 +198,49 @@ npm run preview
 The frontend client will be accessible at: `http://localhost:5173`  
 The backend API health check will be accessible at: `http://localhost:5000/api/health`
 
+### 7.3. Seeded Demonstration Credentials
+
+When running with seeded data (`node scripts/seedData.js`), the following verified demonstration accounts are pre-configured:
+
+| Role | Name | Phone / Login Identifier | Password | Access Scope |
+| :--- | :--- | :--- | :--- | :--- |
+| **Patient / Citizen** | Sunita Patil | `9822011223` | `demopassword123` | Citizen portal, appointment booking, referral tracking |
+| **Healthcare Staff** | Dr. Vikram Joshi | `9823055667` | `demopassword123` | Wagholi PHC triage, appointment review, referral routing |
+| **District Admin** | Dr. Rajesh Deshmukh | `9823000001` | `demopassword123` | Administrative oversight, facility CRUD, role assignment |
+
 ---
 
-## 8. Planned Three-Phase Implementation
+## 8. Implementation Status
 
-### Phase 1: Foundation, Facility Discovery & Triage Mapping (Current Baseline)
-- Complete directory structure, configuration, documentation, and clean MERN skeleton.
-- Health facility catalog with Maharashtra taluka indexing and Leaflet geospatial map.
+### Phase 1: Frontend Architecture & UI Design (Complete)
+- Complete directory structure, configuration, and documentation.
+- Health facility catalog with Maharashtra taluka indexing and interactive Leaflet map.
 - User authentication and role-based route protection.
-- Baseline multilingual support (Marathi, Hindi, English).
+- Full multilingual support in Marathi (मराठी), Hindi (हिंदी), and English.
 
-### Phase 2: Outpatient Scheduling & Clinical Referral Transfers
-- Citizen and ASHA-facilitated outpatient appointment booking with daily queue tokens.
-- Inter-facility clinical referral state machine (Pending -> Accepted -> EnRoute -> Arrived -> Completed).
-- Real-time in-app notification triggers for clinical case updates.
-- Clinical staff triage dashboard and prescription recording.
+### Phase 2: Complete Backend & Frontend Integration (Complete)
+- **Production-grade Express REST API**: Integrated with MongoDB & Mongoose.
+- **Security & Hardening**: Helmet HTTP headers, CORS whitelisting, Express Rate Limiter, and Zod schema validation.
+- **Role-Based Authorization & Object-Level Isolation**:
+  - Public registration strictly enforces `patient` role.
+  - Strict data isolation: Patients can only view and manage their own appointment requests and clinical referrals.
+  - Facility isolation: Medical staff can only review and triage appointments and referrals for their assigned healthcare facility.
+  - Administrative oversight: District administrators manage facilities, review audit logs, and update staff permissions.
+- **Appointment Queue & Token Workflow**:
+  - Automated daily token generation for outpatient scheduling.
+  - Full lifecycle state machine: `pending` -> `accepted` / `rejected` (mandatory clinical reason) -> `completed` / `cancelled`.
+- **Inter-Facility Clinical Referral State Machine**:
+  - `created` -> `sent` -> `accepted` -> `in_progress` -> `completed` / `rejected`.
+  - Immutable audit trail in `statusHistory` recording actor, timestamp, and clinical triage notes.
+- **In-App Notification Engine**:
+  - Event-driven notifications generated on appointment confirmation, cancellation, and referral status updates.
+  - Read/unread tracking and batch mark-as-read endpoints.
+- **Automated In-Memory Test Suite**:
+  - 23 end-to-end integration tests running with `supertest` against `mongodb-memory-server` verifying security, validation, isolation, and status workflows.
+- **Frontend Live API Integration**:
+  - React services upgraded to consume live backend REST endpoints with seamless demo account switching and graceful offline fallback.
 
-### Phase 3: Analytics, Offline Caching & Telemedicine Coordination
+### Phase 3: Analytics, Offline Caching & Telemedicine Coordination (Planned)
 - District Health Officer analytics console: referral turnaround times, facility patient load.
 - Offline-first cache utilizing IndexedDB and Service Workers for remote ASHA workers with poor connectivity.
 - SMS / WhatsApp reminder gateway hooks for rural patients.

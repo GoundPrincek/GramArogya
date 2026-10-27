@@ -8,14 +8,20 @@ const Referral = require('../src/models/Referral');
 const Notification = require('../src/models/Notification');
 const AuditLog = require('../src/models/AuditLog');
 
-let mongoServer;
+let mongoServerInstance = null;
 
 const setupTestDB = async () => {
   if (mongoose.connection.readyState !== 0) {
     await mongoose.disconnect();
   }
-  mongoServer = await MongoMemoryServer.create();
-  const uri = mongoServer.getUri();
+  if (!mongoServerInstance) {
+    mongoServerInstance = await MongoMemoryServer.create({
+      instance: {
+        launchTimeout: 60000
+      }
+    });
+  }
+  const uri = mongoServerInstance.getUri();
   await mongoose.connect(uri);
 };
 
@@ -23,20 +29,23 @@ const teardownTestDB = async () => {
   if (mongoose.connection.readyState !== 0) {
     await mongoose.disconnect();
   }
-  if (mongoServer) {
-    await mongoServer.stop();
+  if (mongoServerInstance) {
+    await mongoServerInstance.stop();
+    mongoServerInstance = null;
   }
 };
 
 const clearTestDB = async () => {
-  await Promise.all([
-    User.deleteMany({}),
-    Facility.deleteMany({}),
-    Appointment.deleteMany({}),
-    Referral.deleteMany({}),
-    Notification.deleteMany({}),
-    AuditLog.deleteMany({})
-  ]);
+  if (mongoose.connection.readyState === 1) {
+    await Promise.all([
+      User.deleteMany({}),
+      Facility.deleteMany({}),
+      Appointment.deleteMany({}),
+      Referral.deleteMany({}),
+      Notification.deleteMany({}),
+      AuditLog.deleteMany({})
+    ]);
+  }
 };
 
 const createTestUser = async (overrides = {}) => {

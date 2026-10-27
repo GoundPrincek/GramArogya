@@ -1,17 +1,22 @@
 import React from 'react';
 
 export const ReferralStatus = ({ status, urgency }) => {
+  const normStatus = (status || 'created').toLowerCase().replace(' ', '_');
+
   const getStatusBadge = () => {
-    switch (status) {
-      case 'Accepted':
-      case 'Completed':
-        return 'badge-success';
-      case 'EnRoute':
-      case 'Arrived':
-        return 'badge-info';
-      case 'Pending':
-        return 'badge-warning';
-      case 'Rejected':
+    switch (normStatus) {
+      case 'accepted':
+      case 'completed':
+        return 'badge-accepted';
+      case 'sent':
+      case 'enroute':
+      case 'in_progress':
+        return 'badge-pending';
+      case 'created':
+      case 'pending':
+        return 'badge-routine';
+      case 'rejected':
+      case 'cancelled':
         return 'badge-emergency';
       default:
         return 'badge-info';
@@ -19,20 +24,23 @@ export const ReferralStatus = ({ status, urgency }) => {
   };
 
   const getUrgencyBadge = () => {
-    switch (urgency) {
-      case 'Emergency':
+    const normUrgency = (urgency || 'routine').toLowerCase();
+    switch (normUrgency) {
+      case 'emergency':
         return <span className="badge badge-emergency">EMERGENCY</span>;
-      case 'Urgent':
+      case 'urgent':
         return <span className="badge badge-warning">URGENT</span>;
       default:
-        return <span className="badge badge-info">ROUTINE</span>;
+        return <span className="badge badge-routine">ROUTINE</span>;
     }
   };
+
+  const formattedStatus = normStatus.split('_').map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
 
   return (
     <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
       {urgency && getUrgencyBadge()}
-      <span className={`badge ${getStatusBadge()}`}>{status}</span>
+      <span className={`badge ${getStatusBadge()}`}>{formattedStatus}</span>
     </div>
   );
 };

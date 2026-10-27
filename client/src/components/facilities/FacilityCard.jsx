@@ -5,7 +5,30 @@ import { MapPin, Phone, Clock, ArrowRight, Map, ShieldCheck } from 'lucide-react
 
 export const FacilityCard = ({ facility, onSelectMap }) => {
   const { t } = useTranslation();
-  const { _id, name, tier, address, village, taluka, district, pincode, contact, operationalHours, servicesAvailable, location } = facility;
+  const {
+    _id,
+    name,
+    tier,
+    facilityType,
+    address,
+    village,
+    taluka,
+    district,
+    pincode,
+    contact,
+    contactInformation,
+    operationalHours,
+    operatingHours,
+    servicesAvailable,
+    services,
+    location,
+    coordinates
+  } = facility;
+
+  const resolvedTier = facilityType || tier;
+  const resolvedContact = contactInformation || contact;
+  const resolvedHours = operatingHours || operationalHours;
+  const resolvedServices = services || servicesAvailable || [];
 
   const getTierBadge = (tTier) => {
     switch (tTier) {
@@ -20,11 +43,11 @@ export const FacilityCard = ({ facility, onSelectMap }) => {
       case 'SubCenter':
         return <span className="badge badge-routine">Sub-Centre</span>;
       default:
-        return <span className="badge badge-info">{tTier}</span>;
+        return <span className="badge badge-info">{tTier || 'PHC'}</span>;
     }
   };
 
-  const hasCoordinates = location?.coordinates && location.coordinates.length === 2;
+  const hasCoordinates = (location?.coordinates && location.coordinates.length === 2) || (coordinates && coordinates.length === 2);
 
   return (
     <div className="card card-interactive" style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
@@ -35,10 +58,10 @@ export const FacilityCard = ({ facility, onSelectMap }) => {
             {name}
           </h3>
           <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>
-            Demo Facility &bull; {taluka}, {district}
+            Public Healthcare &bull; {taluka}, {district}
           </span>
         </div>
-        {getTierBadge(tier)}
+        {getTierBadge(resolvedTier)}
       </div>
 
       {/* Location & Address */}
@@ -50,29 +73,29 @@ export const FacilityCard = ({ facility, onSelectMap }) => {
           </span>
         </div>
 
-        {contact?.phone && (
+        {resolvedContact?.phone && (
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
             <Phone size={15} color="var(--color-primary-light)" style={{ flexShrink: 0 }} />
-            <span>{contact.phone}</span>
+            <span>{resolvedContact.phone}</span>
           </div>
         )}
 
-        {operationalHours && (
+        {resolvedHours && (
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
             <Clock size={15} color="var(--color-primary-light)" style={{ flexShrink: 0 }} />
             <span>
-              {operationalHours.is24x7Emergency
+              {resolvedHours.is24x7Emergency
                 ? '24x7 Emergency Services Available'
-                : `${operationalHours.opensAt || '09:00 AM'} - ${operationalHours.closesAt || '05:00 PM'}`}
+                : `${resolvedHours.opensAt || '09:00 AM'} - ${resolvedHours.closesAt || '05:00 PM'}`}
             </span>
           </div>
         )}
       </div>
 
       {/* Services Preview */}
-      {servicesAvailable && servicesAvailable.length > 0 && (
+      {resolvedServices && resolvedServices.length > 0 && (
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem', margin: '0.25rem 0' }}>
-          {servicesAvailable.slice(0, 3).map((srv, idx) => (
+          {resolvedServices.slice(0, 3).map((srv, idx) => (
             <span
               key={idx}
               style={{
@@ -87,9 +110,9 @@ export const FacilityCard = ({ facility, onSelectMap }) => {
               {srv}
             </span>
           ))}
-          {servicesAvailable.length > 3 && (
+          {resolvedServices.length > 3 && (
             <span style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)', alignSelf: 'center' }}>
-              +{servicesAvailable.length - 3} more
+              +{resolvedServices.length - 3} more
             </span>
           )}
         </div>

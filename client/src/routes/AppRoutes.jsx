@@ -56,6 +56,7 @@ export const AppRoutes = () => {
           </ProtectedRoute>
         }
       >
+        <Route index element={<PatientDashboard />} />
         <Route path="dashboard" element={<PatientDashboard />} />
         <Route path="appointments" element={<MyAppointments />} />
         <Route path="referrals" element={<MyReferrals />} />
@@ -71,6 +72,7 @@ export const AppRoutes = () => {
           </ProtectedRoute>
         }
       >
+        <Route index element={<StaffDashboard />} />
         <Route path="dashboard" element={<StaffDashboard />} />
         <Route path="appointments" element={<ManageAppointments />} />
         <Route path="referrals" element={<ManageReferrals />} />
@@ -85,6 +87,7 @@ export const AppRoutes = () => {
           </ProtectedRoute>
         }
       >
+        <Route index element={<AdminDashboard />} />
         <Route path="dashboard" element={<AdminDashboard />} />
         <Route path="users" element={<ManageUsers />} />
         <Route path="facilities" element={<ManageFacilities />} />

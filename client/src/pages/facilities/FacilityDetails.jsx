@@ -105,10 +105,10 @@ export const FacilityDetails = () => {
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
                 <span className="badge badge-accepted" style={{ fontSize: '0.8rem' }}>
-                  {facility.tier}
+                  {facility.tier || facility.facilityType}
                 </span>
                 <span style={{ fontSize: '0.78rem', color: 'var(--color-text-muted)' }}>
-                  Code: {facility.facilityCode}
+                  Code: {facility.facilityCode || 'MH-GOV'}
                 </span>
               </div>
 
@@ -157,9 +157,9 @@ export const FacilityDetails = () => {
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginTop: '0.25rem', fontSize: '0.95rem', fontWeight: 600 }}>
                 <Clock size={16} color="var(--color-primary)" />
                 <span>
-                  {facility.operationalHours?.is24x7Emergency
+                  {(facility.operatingHours || facility.operationalHours)?.is24x7Emergency
                     ? '24x7 Emergency Services'
-                    : `${facility.operationalHours?.opensAt} - ${facility.operationalHours?.closesAt}`}
+                    : `${(facility.operatingHours || facility.operationalHours)?.opensAt || '09:00 AM'} - ${(facility.operatingHours || facility.operationalHours)?.closesAt || '05:00 PM'}`}
                 </span>
               </div>
             </div>
@@ -170,7 +170,7 @@ export const FacilityDetails = () => {
               </span>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginTop: '0.25rem', fontSize: '0.95rem', fontWeight: 600 }}>
                 <Phone size={16} color="var(--color-primary)" />
-                <span>{facility.contact?.phone || 'Government Helpline 108'}</span>
+                <span>{(facility.contactInformation || facility.contact)?.phone || 'Government Helpline 108'}</span>
               </div>
             </div>
 
@@ -205,7 +205,7 @@ export const FacilityDetails = () => {
               {t('facilities.servicesOffered')}
             </h3>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '0.65rem' }}>
-              {facility.servicesAvailable?.map((srv, idx) => (
+              {(facility.services || facility.servicesAvailable || [])?.map((srv, idx) => (
                 <div
                   key={idx}
                   style={{

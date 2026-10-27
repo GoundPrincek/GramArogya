@@ -1,6 +1,7 @@
 import React, { createContext, useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import authService from '../services/authService';
+import api from '../services/api';
 import {
   getStoredCurrentUser,
   setStoredCurrentUser,
@@ -15,6 +16,27 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(() => getStoredCurrentUser());
   const [loading, setLoading] = useState(false);
   const [language, setLanguageState] = useState(() => i18n.language || 'mr');
+
+  // Load authenticated user profile from backend on app startup if token exists
+  useEffect(() => {
+    const initAuth = async () => {
+      const token = localStorage.getItem('gram_arogya_token');
+      if (token) {
+        try {
+          const res = await authService.getCurrentUser();
+          const currentUser = res?.data?.user || res?.data;
+          if (currentUser) {
+            setUser(currentUser);
+            setStoredCurrentUser(currentUser);
+          }
+        } catch {
+          // Token invalid or expired
+          localStorage.removeItem('gram_arogya_token');
+        }
+      }
+    };
+    initAuth();
+  }, []);
 
   // Sync state when local storage changes
   useEffect(() => {
@@ -38,8 +60,9 @@ export const AuthProvider = ({ children }) => {
     setLoading(true);
     try {
       const res = await authService.login(credentials);
-      if (res?.data?.user) {
-        setUser(res.data.user);
+      const authenticatedUser = res?.data?.user || res?.data;
+      if (authenticatedUser) {
+        setUser(authenticatedUser);
       }
       return res;
     } finally {
@@ -51,8 +74,9 @@ export const AuthProvider = ({ children }) => {
     setLoading(true);
     try {
       const res = await authService.register(userData);
-      if (res?.data?.user) {
-        setUser(res.data.user);
+      const registeredUser = res?.data?.user || res?.data;
+      if (registeredUser) {
+        setUser(registeredUser);
       }
       return res;
     } finally {
@@ -62,14 +86,30 @@ export const AuthProvider = ({ children }) => {
 
   const logout = () => {
     authService.logout();
-    // Default back to guest or citizen
     const citizen = MOCK_USERS[0];
     setStoredCurrentUser(citizen);
     setUser(citizen);
   };
 
-  const switchDemoRole = (role) => {
+  const switchDemoRole = async (role) => {
     const found = MOCK_USERS.find((u) => u.role === role) || MOCK_USERS[0];
+    try {
+      // Attempt live login with seeded demo account
+      const loginPayload = {
+        identifier: found.phone || found.email,
+        password: 'demopassword123'
+      };
+      const response = await api.post('/auth/login', loginPayload);
+      if (response.data?.data?.token) {
+        localStorage.setItem('gram_arogya_token', response.data.data.token);
+        const liveUser = response.data.data.user;
+        setUser(liveUser);
+        setStoredCurrentUser(liveUser);
+        return;
+      }
+    } catch {
+      // Backend not running, use client-side demo user
+    }
     setStoredCurrentUser(found);
     setUser(found);
   };

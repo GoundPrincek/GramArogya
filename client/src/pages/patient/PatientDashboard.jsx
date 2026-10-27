@@ -6,6 +6,9 @@ import DashboardHeader from '../../components/dashboard/DashboardHeader';
 import StatisticsCard from '../../components/dashboard/StatisticsCard';
 import StatusBadge from '../../components/common/StatusBadge';
 import Button from '../../components/common/Button';
+import appointmentService from '../../services/appointmentService';
+import referralService from '../../services/referralService';
+import dashboardService from '../../services/dashboardService';
 import {
   getStoredAppointments,
   getStoredReferrals,
@@ -30,12 +33,41 @@ export const PatientDashboard = () => {
 
   const [appointments, setAppointments] = useState([]);
   const [referrals, setReferrals] = useState([]);
-  const [notifications, setNotifications] = useState([]);
+  const [dashboardStats, setDashboardStats] = useState(null);
+  const [loading, setLoading] = useState(true);
 
-  const loadData = () => {
-    setAppointments(getStoredAppointments());
-    setReferrals(getStoredReferrals());
-    setNotifications(getStoredNotifications());
+  const loadData = async () => {
+    try {
+      setLoading(true);
+      const [dashRes, aptRes, refRes] = await Promise.allSettled([
+        dashboardService.getPatientDashboard(),
+        appointmentService.getMyAppointments(),
+        referralService.getMyReferrals()
+      ]);
+
+      if (dashRes.status === 'fulfilled' && dashRes.value?.data?.stats) {
+        setDashboardStats(dashRes.value.data.stats);
+      }
+
+      if (aptRes.status === 'fulfilled' && aptRes.value?.data) {
+        const aptList = Array.isArray(aptRes.value.data) ? aptRes.value.data : (aptRes.value.data.appointments || []);
+        setAppointments(aptList);
+      } else {
+        setAppointments(getStoredAppointments());
+      }
+
+      if (refRes.status === 'fulfilled' && refRes.value?.data) {
+        const refList = Array.isArray(refRes.value.data) ? refRes.value.data : (refRes.value.data.referrals || []);
+        setReferrals(refList);
+      } else {
+        setReferrals(getStoredReferrals());
+      }
+    } catch {
+      setAppointments(getStoredAppointments());
+      setReferrals(getStoredReferrals());
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -45,14 +77,34 @@ export const PatientDashboard = () => {
   }, []);
 
   const upcomingAppointments = appointments
-    .filter((a) => a.status === 'Pending' || a.status === 'Accepted')
-    .slice(0, 2);
+    .filter((a) => {
+      const st = (a.status || '').toLowerCase();
+      return st === 'pending' || st === 'accepted' || st === 'scheduled';
+    })
+    .slice(0, 3);
 
   const activeReferrals = referrals
-    .filter((r) => r.status !== 'Completed' && r.status !== 'Rejected')
-    .slice(0, 2);
+    .filter((r) => {
+      const st = (r.status || '').toLowerCase();
+      return st !== 'completed' && st !== 'rejected';
+    })
+    .slice(0, 3);
 
-  const unreadNotifications = notifications.filter((n) => !n.isRead).length;
+  const activeApptCount = dashboardStats?.pendingAppointments !== undefined
+    ? (dashboardStats.pendingAppointments + (dashboardStats.acceptedAppointments || 0))
+    : appointments.filter((a) => ['pending', 'accepted', 'scheduled'].includes((a.status || '').toLowerCase())).length;
+
+  const pendingApptCount = dashboardStats?.pendingAppointments !== undefined
+    ? dashboardStats.pendingAppointments
+    : appointments.filter((a) => (a.status || '').toLowerCase() === 'pending').length;
+
+  const activeRefCount = dashboardStats?.activeReferrals !== undefined
+    ? dashboardStats.activeReferrals
+    : activeReferrals.length;
+
+  const unreadAlerts = dashboardStats?.unreadNotifications !== undefined
+    ? dashboardStats.unreadNotifications
+    : getStoredNotifications().filter((n) => !n.isRead).length;
 
   return (
     <div>
@@ -60,14 +112,6 @@ export const PatientDashboard = () => {
         title={`Citizen Health Console`}
         subtitle={`Welcome back, ${user?.name || 'Citizen'}. View your scheduled appointments and referral status across Maharashtra public health centers.`}
       />
-
-      {/* Demonstration Notice Box */}
-      <div className="notice-box-warning" style={{ marginBottom: '1.5rem', fontSize: '0.85rem' }}>
-        <Info size={18} style={{ flexShrink: 0 }} />
-        <div>
-          <strong>Demonstration Workspace:</strong> All records below represent local prototype state. In Phase 2, this portal will sync with your verified ABHA / Ayushman Bharat digital health ID.
-        </div>
-      </div>
 
       {/* Metrics Row */}
       <div style={{
@@ -78,9 +122,9 @@ export const PatientDashboard = () => {
       }}>
         <StatisticsCard
           title="Active Appointment Requests"
-          value={appointments.filter((a) => a.status === 'Pending' || a.status === 'Accepted').length}
+          value={activeApptCount}
           icon={Calendar}
-          change={`${appointments.filter((a) => a.status === 'Pending').length} Pending Facility Review`}
+          change={`${pendingApptCount} Pending Facility Review`}
           trend="neutral"
         />
 
@@ -88,13 +132,13 @@ export const PatientDashboard = () => {
           title="Clinical Referrals"
           value={referrals.length}
           icon={Share2}
-          change={`${activeReferrals.length} Active Inter-Facility Transfers`}
+          change={`${activeRefCount} Active Inter-Facility Transfers`}
           trend="positive"
         />
 
         <StatisticsCard
           title="Unread Alerts"
-          value={unreadNotifications}
+          value={unreadAlerts}
           icon={Bell}
           change="Public Health Updates"
           trend="neutral"
@@ -128,38 +172,50 @@ export const PatientDashboard = () => {
           </div>
 
           {upcomingAppointments.length === 0 ? (
-            <p style={{ color: 'var(--color-text-muted)', fontSize: '0.9rem', margin: 'auto 0' }}>
+            <p style={{ color: 'var(--color-text-secondary)', fontSize: '0.9rem', margin: 'auto 0' }}>
               No upcoming appointments. Request an appointment at your nearby PHC or CHC.
             </p>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-              {upcomingAppointments.map((apt) => (
-                <div
-                  key={apt._id}
-                  style={{
-                    padding: '0.75rem',
-                    backgroundColor: 'var(--color-bg-main)',
-                    borderRadius: 'var(--radius-md)',
-                    border: '1px solid var(--color-border)',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '0.35rem'
-                  }}
-                >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <strong style={{ fontSize: '0.925rem', color: 'var(--color-primary)' }}>
-                      {apt.facilityName}
-                    </strong>
-                    <StatusBadge status={apt.status} />
+              {upcomingAppointments.map((apt) => {
+                const facilityTitle =
+                  apt.facility?.name ||
+                  apt.facilityId?.name ||
+                  apt.facilityName ||
+                  'Health Facility';
+                const service = apt.requestedService || apt.department || 'General OPD';
+                const token = apt.tokenNumber || 1;
+                const aptDate = apt.preferredDate || apt.appointmentDate;
+                const aptSlot = apt.preferredTime || apt.timeSlot;
+
+                return (
+                  <div
+                    key={apt._id || apt.id}
+                    style={{
+                      padding: '0.75rem',
+                      backgroundColor: 'var(--color-bg-main)',
+                      borderRadius: 'var(--radius-md)',
+                      border: '1px solid var(--color-border)',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '0.35rem'
+                    }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <strong style={{ fontSize: '0.925rem', color: 'var(--color-primary)' }}>
+                        {facilityTitle}
+                      </strong>
+                      <StatusBadge status={apt.status} />
+                    </div>
+                    <div style={{ fontSize: '0.825rem', color: 'var(--color-text-secondary)' }}>
+                      {service} &bull; Token #{token}
+                    </div>
+                    <div style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                      <Clock size={13} /> {aptDate?.slice(0, 10)} ({aptSlot})
+                    </div>
                   </div>
-                  <div style={{ fontSize: '0.825rem', color: 'var(--color-text-secondary)' }}>
-                    {apt.requestedService} &bull; Token #{apt.tokenNumber}
-                  </div>
-                  <div style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                    <Clock size={13} /> {apt.appointmentDate} ({apt.timeSlot})
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
 
@@ -182,38 +238,52 @@ export const PatientDashboard = () => {
           </div>
 
           {activeReferrals.length === 0 ? (
-            <p style={{ color: 'var(--color-text-muted)', fontSize: '0.9rem', margin: 'auto 0' }}>
+            <p style={{ color: 'var(--color-text-secondary)', fontSize: '0.9rem', margin: 'auto 0' }}>
               No active clinical transfers at this time.
             </p>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-              {activeReferrals.map((ref) => (
-                <div
-                  key={ref._id}
-                  style={{
-                    padding: '0.75rem',
-                    backgroundColor: 'var(--color-bg-main)',
-                    borderRadius: 'var(--radius-md)',
-                    border: '1px solid var(--color-border)',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '0.35rem'
-                  }}
-                >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ fontSize: '0.78rem', color: 'var(--color-text-muted)' }}>
-                      {ref.referralCode}
-                    </span>
-                    <StatusBadge status={ref.status} urgency={ref.urgencyLevel} />
+              {activeReferrals.map((ref) => {
+                const fromFacility =
+                  ref.referringFacility?.name ||
+                  ref.fromFacilityId?.name ||
+                  ref.referringFacilityName ||
+                  'Primary Health Center';
+                const toFacility =
+                  ref.receivingFacility?.name ||
+                  ref.toFacilityId?.name ||
+                  ref.receivingFacilityName ||
+                  'Referral Center';
+                const code = ref.referralCode || `REF-${(ref._id || '').slice(-6).toUpperCase()}`;
+
+                return (
+                  <div
+                    key={ref._id || ref.id}
+                    style={{
+                      padding: '0.75rem',
+                      backgroundColor: 'var(--color-bg-main)',
+                      borderRadius: 'var(--radius-md)',
+                      border: '1px solid var(--color-border)',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '0.35rem'
+                    }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ fontSize: '0.78rem', color: 'var(--color-text-muted)' }}>
+                        {code}
+                      </span>
+                      <StatusBadge status={ref.status} urgency={ref.urgencyLevel} />
+                    </div>
+                    <div style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--color-text-primary)' }}>
+                      {fromFacility} &rarr; {toFacility}
+                    </div>
+                    <div style={{ fontSize: '0.8rem', color: 'var(--color-text-secondary)' }}>
+                      Diagnosis: {ref.provisionalDiagnosis || 'Clinical Assessment'}
+                    </div>
                   </div>
-                  <div style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--color-text-primary)' }}>
-                    {ref.referringFacilityName} &rarr; {ref.receivingFacilityName}
-                  </div>
-                  <div style={{ fontSize: '0.8rem', color: 'var(--color-text-secondary)' }}>
-                    Diagnosis: {ref.provisionalDiagnosis}
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
 

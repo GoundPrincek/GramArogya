@@ -1,10 +1,25 @@
 import React from 'react';
 import AppointmentStatus from './AppointmentStatus';
 import { formatDate } from '../../utils/formatDate';
-import { Calendar, Clock, MapPin, Hash } from 'lucide-react';
+import { Calendar, Clock, MapPin, Hash, XCircle, FileText } from 'lucide-react';
 
-export const AppointmentCard = ({ appointment }) => {
-  const { facilityId, appointmentDate, timeSlot, tokenNumber, department, status, symptoms } = appointment;
+export const AppointmentCard = ({ appointment, onCancel }) => {
+  const facilityName =
+    appointment.facility?.name ||
+    appointment.facilityId?.name ||
+    appointment.facilityName ||
+    'Assigned Health Facility';
+
+  const appointmentDate = appointment.preferredDate || appointment.appointmentDate;
+  const timeSlot = appointment.preferredTime || appointment.timeSlot;
+  const tokenNumber = appointment.tokenNumber || 1;
+  const department = appointment.requestedService || appointment.department || 'General Medicine';
+  const status = appointment.status || 'pending';
+  const symptoms = appointment.notes || appointment.symptoms;
+  const decisionReason = appointment.decisionReason;
+  const consultationNotes = appointment.consultationNotes;
+
+  const canCancel = ['pending', 'accepted', 'scheduled'].includes(status.toLowerCase());
 
   return (
     <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
@@ -31,7 +46,7 @@ export const AppointmentCard = ({ appointment }) => {
       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', fontSize: '0.9rem', color: 'var(--color-text-secondary)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
           <MapPin size={16} color="var(--color-primary-light)" />
-          <span>{facilityId?.name || 'Assigned Health Facility'}</span>
+          <span>{facilityName}</span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
           <Calendar size={16} color="var(--color-primary-light)" />
@@ -50,7 +65,46 @@ export const AppointmentCard = ({ appointment }) => {
           borderRadius: 'var(--radius-sm)',
           fontSize: '0.85rem'
         }}>
-          <strong>Reported Symptoms:</strong> {symptoms}
+          <strong>Reported Symptoms / Notes:</strong> {symptoms}
+        </div>
+      )}
+
+      {decisionReason && (
+        <div style={{
+          backgroundColor: '#fef2f2',
+          border: '1px solid #fecaca',
+          color: '#991b1b',
+          padding: '0.5rem 0.75rem',
+          borderRadius: 'var(--radius-sm)',
+          fontSize: '0.85rem'
+        }}>
+          <strong>Review Note / Reason:</strong> {decisionReason}
+        </div>
+      )}
+
+      {consultationNotes && (
+        <div style={{
+          backgroundColor: '#eff6ff',
+          border: '1px solid #bfdbfe',
+          color: '#1e40af',
+          padding: '0.5rem 0.75rem',
+          borderRadius: 'var(--radius-sm)',
+          fontSize: '0.85rem'
+        }}>
+          <strong>Consultation Notes:</strong> {consultationNotes}
+        </div>
+      )}
+
+      {canCancel && onCancel && (
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '0.25rem' }}>
+          <button
+            type="button"
+            className="btn btn-outline btn-sm"
+            style={{ color: 'var(--color-emergency)', borderColor: 'var(--color-emergency)', fontSize: '0.8rem', padding: '0.3rem 0.6rem' }}
+            onClick={() => onCancel(appointment._id || appointment.id)}
+          >
+            <XCircle size={14} /> Cancel Request
+          </button>
         </div>
       )}
     </div>
