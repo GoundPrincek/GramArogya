@@ -97,9 +97,7 @@ userSchema.methods.matchPassword = async function (enteredPassword) {
   return bcrypt.compare(enteredPassword, this.passwordHash);
 };
 
-// Compound index
-userSchema.index({ phone: 1 });
-userSchema.index({ email: 1 });
+// Email has sparse: true and Phone has unique: true which automatically create their indexes
 
 const User = mongoose.model('User', userSchema);
 module.exports = User;

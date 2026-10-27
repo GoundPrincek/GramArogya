@@ -16,7 +16,9 @@ const getMyProfile = asyncHandler(async (req, res) => {
 
   res.status(200).json({
     success: true,
-    data: user.toJSON()
+    data: {
+      user: user.toJSON()
+    }
   });
 });
 
@@ -58,7 +60,9 @@ const updateMyProfile = asyncHandler(async (req, res) => {
   res.status(200).json({
     success: true,
     message: 'Profile updated successfully',
-    data: user.toJSON()
+    data: {
+      user: user.toJSON()
+    }
   });
 });
 
@@ -118,7 +122,9 @@ const updateUserRole = asyncHandler(async (req, res) => {
   res.status(200).json({
     success: true,
     message: 'User permissions updated successfully',
-    data: user.toJSON()
+    data: {
+      user: user.toJSON()
+    }
   });
 });
 

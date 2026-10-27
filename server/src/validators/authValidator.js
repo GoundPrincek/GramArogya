@@ -27,8 +27,9 @@ const validateRegister = (req, res, next) => {
     req.body.role = 'patient';
     next();
   } catch (err) {
-    const errors = err.errors.map((e) => ({
-      field: e.path.join('.'),
+    const list = err.issues || err.errors || [];
+    const errors = list.map((e) => ({
+      field: Array.isArray(e.path) ? e.path.join('.') : '',
       message: e.message
     }));
     next(new ApiError(400, 'Validation failed for registration', errors));
@@ -41,8 +42,9 @@ const validateLogin = (req, res, next) => {
     req.body = parsed;
     next();
   } catch (err) {
-    const errors = err.errors.map((e) => ({
-      field: e.path.join('.'),
+    const list = err.issues || err.errors || [];
+    const errors = list.map((e) => ({
+      field: Array.isArray(e.path) ? e.path.join('.') : '',
       message: e.message
     }));
     next(new ApiError(400, 'Validation failed for login', errors));

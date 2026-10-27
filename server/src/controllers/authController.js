@@ -51,7 +51,9 @@ const getMe = asyncHandler(async (req, res) => {
   res.status(200).json({
     success: true,
     message: 'Current profile retrieved successfully',
-    data: user
+    data: {
+      user
+    }
   });
 });
 

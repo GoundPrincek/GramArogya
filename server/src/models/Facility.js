@@ -51,9 +51,10 @@ const facilitySchema = new mongoose.Schema(
     },
     coordinates: {
       type: [Number], // [longitude, latitude]
+      default: [73.98, 18.58],
       validate: {
         validator: function (val) {
-          if (!val) return true;
+          if (!val || val.length === 0) return true;
           return (
             Array.isArray(val) &&
             val.length === 2 &&

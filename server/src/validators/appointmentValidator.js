@@ -36,8 +36,9 @@ const validateBookAppointment = (req, res, next) => {
     req.body = parsed;
     next();
   } catch (err) {
-    const errors = err.errors.map((e) => ({
-      field: e.path.join('.'),
+    const list = err.issues || err.errors || [];
+    const errors = list.map((e) => ({
+      field: Array.isArray(e.path) ? e.path.join('.') : '',
       message: e.message
     }));
     next(new ApiError(400, 'Validation failed for appointment booking', errors));
@@ -58,8 +59,9 @@ const validateRejectReason = (req, res, next) => {
     req.body = parsed;
     next();
   } catch (err) {
-    const errors = err.errors.map((e) => ({
-      field: e.path.join('.'),
+    const list = err.issues || err.errors || [];
+    const errors = list.map((e) => ({
+      field: Array.isArray(e.path) ? e.path.join('.') : '',
       message: e.message
     }));
     next(new ApiError(400, 'Rejection reason is required', errors));

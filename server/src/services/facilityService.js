@@ -16,8 +16,9 @@ const getFacilities = async (filters = {}) => {
   if (filters.village) {
     query.village = new RegExp(filters.village, 'i');
   }
-  if (filters.facilityType || filters.tier) {
-    query.facilityType = filters.facilityType || filters.tier;
+  const typeParam = filters.facilityType || filters.type || filters.tier;
+  if (typeParam) {
+    query.facilityType = typeParam;
   }
   if (filters.service) {
     query.services = { $regex: new RegExp(filters.service, 'i') };

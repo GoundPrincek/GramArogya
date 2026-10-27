@@ -15,6 +15,12 @@ const getFacilities = asyncHandler(async (req, res) => {
     page: result.page,
     totalPages: result.totalPages,
     limit: result.limit,
+    pagination: {
+      total: result.total,
+      page: result.page,
+      totalPages: result.totalPages,
+      limit: result.limit
+    },
     data: result.facilities
   });
 });
