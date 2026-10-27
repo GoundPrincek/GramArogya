@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none">
+  <circle cx="50" cy="50" r="48" fill="#1b4332" />
+  <circle cx="50" cy="50" r="42" fill="#2d6a4f" />
+  <!-- Medical Cross / Arogya Symbol -->
+  <rect x="42" y="22" width="16" height="56" rx="4" fill="#ffffff" />
+  <rect x="22" y="42" width="56" height="16" rx="4" fill="#ffffff" />
+  <!-- Heart / Care Accent -->
+  <circle cx="50" cy="50" r="8" fill="#52b788" />
+</svg>

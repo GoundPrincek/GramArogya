@@ -1,0 +1,36 @@
+{
+  "app": {
+    "title": "GramArogya Connect",
+    "tagline": "Rural Public Healthcare Access and Coordination Platform",
+    "subtitle": "Connecting villages to primary health centers, specialists, and lifesaving care across Maharashtra.",
+    "state": "Government of Maharashtra Initiative"
+  },
+  "nav": {
+    "home": "Home",
+    "facilities": "Health Facilities",
+    "appointments": "Appointments",
+    "referrals": "Referrals",
+    "dashboard": "Dashboard",
+    "login": "Login",
+    "register": "Register",
+    "logout": "Logout"
+  },
+  "home": {
+    "welcome": "Welcome to GramArogya Connect",
+    "emergencyBanner": "Emergency Medical Helpline: 108 / 102 (Maharashtra Emergency Ambulance)",
+    "findNearby": "Find Nearest Health Facility",
+    "searchPlaceholder": "Search by village, taluka, or PIN code...",
+    "subCenter": "Sub-Centre",
+    "phc": "Primary Health Centre (PHC)",
+    "chc": "Community Health Centre (CHC)",
+    "districtHospital": "District Hospital"
+  },
+  "auth": {
+    "phone": "Mobile Number",
+    "password": "Password",
+    "name": "Full Name",
+    "role": "Role",
+    "loginTitle": "Sign In to GramArogya",
+    "registerTitle": "Citizen Registration"
+  }
+}
