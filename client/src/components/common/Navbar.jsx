@@ -1,25 +1,40 @@
 import React, { useState } from 'react';
 import { Link, NavLink, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../hooks/useAuth';
 import LanguageSwitcher from './LanguageSwitcher';
-import { Activity, Menu, X, User, LogOut, LayoutDashboard } from 'lucide-react';
+import {
+  Activity,
+  Menu,
+  X,
+  User,
+  LogOut,
+  LayoutDashboard,
+  Shield,
+  Stethoscope,
+  Building
+} from 'lucide-react';
 
 export const Navbar = () => {
-  const { user, isAuthenticated, logout, t } = useAuth();
+  const { t } = useTranslation();
+  const { user, switchDemoRole, logout } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const navigate = useNavigate();
 
-  const handleLogout = () => {
-    logout();
-    navigate('/');
+  const getDashboardPath = () => {
+    if (!user) return '/login';
+    if (user.role === 'admin') return '/admin';
+    if (user.role === 'doctor' || user.role === 'staff' || user.role === 'asha_worker') return '/staff';
+    return '/patient';
   };
 
-  const getDashboardLink = () => {
-    if (!user) return '/login';
-    if (user.role === 'admin') return '/admin/dashboard';
-    if (user.role === 'doctor' || user.role === 'staff' || user.role === 'asha_worker') return '/staff/dashboard';
-    return '/patient/dashboard';
-  };
+  const linkStyle = ({ isActive }) => ({
+    fontWeight: isActive ? 600 : 500,
+    color: isActive ? 'var(--color-primary)' : 'var(--color-text-secondary)',
+    borderBottom: isActive ? '2px solid var(--color-primary)' : '2px solid transparent',
+    padding: '0.4rem 0',
+    fontSize: '0.9rem'
+  });
 
   return (
     <header style={{
@@ -29,41 +44,95 @@ export const Navbar = () => {
       top: 0,
       zIndex: 50
     }}>
-      {/* Top Banner for Emergency Helpline */}
+      {/* Top Government & Demo Role Switcher Bar */}
       <div style={{
         backgroundColor: 'var(--color-primary-dark)',
         color: '#ffffff',
         padding: '0.35rem 1rem',
-        fontSize: '0.8rem',
+        fontSize: '0.78rem',
         display: 'flex',
         justifyContent: 'space-between',
-        alignItems: 'center'
+        alignItems: 'center',
+        flexWrap: 'wrap',
+        gap: '0.5rem'
       }}>
-        <span>{t('app.state')}</span>
-        <span>{t('home.emergencyBanner')}</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <span>{t('app.state')}</span>
+          <span style={{ opacity: 0.6 }}>|</span>
+          <span style={{ color: 'var(--color-accent)' }}>SIH26133</span>
+        </div>
+
+        {/* Demo Fast-Switch Control */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.75rem' }}>
+          <span style={{ opacity: 0.8 }}>Test Role:</span>
+          <button
+            onClick={() => { switchDemoRole('patient'); navigate('/patient'); }}
+            style={{
+              background: user?.role === 'patient' ? 'var(--color-accent)' : 'rgba(255,255,255,0.15)',
+              color: user?.role === 'patient' ? '#081c15' : '#ffffff',
+              border: 'none',
+              padding: '0.15rem 0.45rem',
+              borderRadius: '3px',
+              cursor: 'pointer',
+              fontWeight: 600
+            }}
+          >
+            Citizen
+          </button>
+          <button
+            onClick={() => { switchDemoRole('doctor'); navigate('/staff'); }}
+            style={{
+              background: user?.role === 'doctor' || user?.role === 'staff' ? 'var(--color-accent)' : 'rgba(255,255,255,0.15)',
+              color: user?.role === 'doctor' || user?.role === 'staff' ? '#081c15' : '#ffffff',
+              border: 'none',
+              padding: '0.15rem 0.45rem',
+              borderRadius: '3px',
+              cursor: 'pointer',
+              fontWeight: 600
+            }}
+          >
+            Staff
+          </button>
+          <button
+            onClick={() => { switchDemoRole('admin'); navigate('/admin'); }}
+            style={{
+              background: user?.role === 'admin' ? 'var(--color-accent)' : 'rgba(255,255,255,0.15)',
+              color: user?.role === 'admin' ? '#081c15' : '#ffffff',
+              border: 'none',
+              padding: '0.15rem 0.45rem',
+              borderRadius: '3px',
+              cursor: 'pointer',
+              fontWeight: 600
+            }}
+          >
+            Admin
+          </button>
+        </div>
       </div>
 
+      {/* Main Bar */}
       <div className="container" style={{
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
-        height: '68px'
+        height: '66px'
       }}>
         {/* Brand Logo */}
-        <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+        <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
           <div style={{
             backgroundColor: 'var(--color-primary)',
             color: '#ffffff',
             padding: '0.45rem',
             borderRadius: 'var(--radius-md)',
             display: 'flex',
-            alignItems: 'center'
+            alignItems: 'center',
+            boxShadow: '0 2px 4px rgba(27,67,50,0.2)'
           }}>
-            <Activity size={24} />
+            <Activity size={22} />
           </div>
           <div>
             <span style={{
-              fontSize: '1.25rem',
+              fontSize: '1.2rem',
               fontWeight: 700,
               color: 'var(--color-primary)',
               display: 'block',
@@ -71,76 +140,40 @@ export const Navbar = () => {
             }}>
               GramArogya
             </span>
-            <span style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)', letterSpacing: '0.5px' }}>
-              CONNECT
+            <span style={{ fontSize: '0.7rem', color: 'var(--color-text-secondary)', letterSpacing: '0.8px', fontWeight: 600 }}>
+              CONNECT &bull; ग्रामीण आरोग्य
             </span>
           </div>
         </Link>
 
         {/* Desktop Navigation */}
         <nav className="hide-on-mobile" style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
-          <NavLink
-            to="/"
-            style={({ isActive }) => ({
-              fontWeight: 500,
-              color: isActive ? 'var(--color-primary)' : 'var(--color-text-secondary)'
-            })}
-          >
+          <NavLink to="/" style={linkStyle}>
             {t('nav.home')}
           </NavLink>
-          <NavLink
-            to="/facilities"
-            style={({ isActive }) => ({
-              fontWeight: 500,
-              color: isActive ? 'var(--color-primary)' : 'var(--color-text-secondary)'
-            })}
-          >
+          <NavLink to="/facilities" style={linkStyle}>
             {t('nav.facilities')}
           </NavLink>
-
-          {isAuthenticated && (
-            <NavLink
-              to={getDashboardLink()}
-              style={({ isActive }) => ({
-                fontWeight: 500,
-                color: isActive ? 'var(--color-primary)' : 'var(--color-text-secondary)',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.3rem'
-              })}
-            >
-              <LayoutDashboard size={16} />
-              {t('nav.dashboard')}
-            </NavLink>
-          )}
+          <NavLink to={getDashboardPath()} style={linkStyle}>
+            {t('nav.dashboard')}
+          </NavLink>
 
           <LanguageSwitcher />
 
-          {isAuthenticated ? (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-              <span style={{ fontSize: '0.9rem', color: 'var(--color-text-secondary)' }}>
-                {user?.name} ({user?.role})
+          {/* Active User Indicator */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <Link
+              to={getDashboardPath()}
+              className="btn btn-secondary"
+              style={{ padding: '0.4rem 0.8rem', fontSize: '0.85rem' }}
+            >
+              <User size={15} />
+              <span>{user?.name?.split(' ')[0] || 'User'}</span>
+              <span className="badge badge-info" style={{ fontSize: '0.65rem', padding: '0.1rem 0.35rem' }}>
+                {user?.role}
               </span>
-              <button
-                onClick={handleLogout}
-                className="btn btn-secondary"
-                style={{ padding: '0.4rem 0.8rem', fontSize: '0.85rem' }}
-              >
-                <LogOut size={16} />
-                {t('nav.logout')}
-              </button>
-            </div>
-          ) : (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-              <Link to="/login" className="btn btn-secondary" style={{ padding: '0.4rem 0.85rem' }}>
-                <User size={16} />
-                {t('nav.login')}
-              </Link>
-              <Link to="/register" className="btn btn-primary" style={{ padding: '0.4rem 0.85rem' }}>
-                {t('nav.register')}
-              </Link>
-            </div>
-          )}
+            </Link>
+          </div>
         </nav>
 
         {/* Mobile Hamburger Toggle */}
@@ -158,14 +191,14 @@ export const Navbar = () => {
               display: 'flex',
               padding: '0.5rem'
             }}
-            aria-label="Toggle menu"
+            aria-label="Toggle Navigation Menu"
           >
             {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
           </button>
         </div>
       </div>
 
-      {/* Mobile Menu Drawer */}
+      {/* Mobile Drawer */}
       {mobileMenuOpen && (
         <div style={{
           backgroundColor: '#ffffff',
@@ -173,30 +206,22 @@ export const Navbar = () => {
           padding: '1rem',
           display: 'flex',
           flexDirection: 'column',
-          gap: '1rem'
+          gap: '0.85rem'
         }}>
-          <Link to="/" onClick={() => setMobileMenuOpen(false)}>{t('nav.home')}</Link>
-          <Link to="/facilities" onClick={() => setMobileMenuOpen(false)}>{t('nav.facilities')}</Link>
-          {isAuthenticated && (
-            <Link to={getDashboardLink()} onClick={() => setMobileMenuOpen(false)}>
-              {t('nav.dashboard')}
+          <Link to="/" onClick={() => setMobileMenuOpen(false)} style={{ padding: '0.4rem 0' }}>{t('nav.home')}</Link>
+          <Link to="/facilities" onClick={() => setMobileMenuOpen(false)} style={{ padding: '0.4rem 0' }}>{t('nav.facilities')}</Link>
+          <Link to={getDashboardPath()} onClick={() => setMobileMenuOpen(false)} style={{ padding: '0.4rem 0' }}>{t('nav.dashboard')}</Link>
+          <div style={{ padding: '0.5rem 0' }}>
+            <LanguageSwitcher />
+          </div>
+          <div style={{ display: 'flex', gap: '0.5rem', paddingTop: '0.5rem', borderTop: '1px solid var(--color-border)' }}>
+            <Link to="/login" onClick={() => setMobileMenuOpen(false)} className="btn btn-secondary" style={{ flex: 1 }}>
+              {t('nav.login')}
             </Link>
-          )}
-          <LanguageSwitcher />
-          {isAuthenticated ? (
-            <button onClick={() => { handleLogout(); setMobileMenuOpen(false); }} className="btn btn-secondary">
-              {t('nav.logout')}
-            </button>
-          ) : (
-            <div style={{ display: 'flex', gap: '0.5rem' }}>
-              <Link to="/login" onClick={() => setMobileMenuOpen(false)} className="btn btn-secondary" style={{ flex: 1 }}>
-                {t('nav.login')}
-              </Link>
-              <Link to="/register" onClick={() => setMobileMenuOpen(false)} className="btn btn-primary" style={{ flex: 1 }}>
-                {t('nav.register')}
-              </Link>
-            </div>
-          )}
+            <Link to="/register" onClick={() => setMobileMenuOpen(false)} className="btn btn-primary" style={{ flex: 1 }}>
+              {t('nav.register')}
+            </Link>
+          </div>
         </div>
       )}
     </header>

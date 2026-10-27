@@ -1,17 +1,33 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import facilityService from '../../services/facilityService';
+import FacilityMap from '../../components/facilities/FacilityMap';
+import AppointmentRequestModal from '../../components/appointments/AppointmentRequestModal';
+import Breadcrumbs from '../../components/common/Breadcrumbs';
 import Loader from '../../components/common/Loader';
 import Button from '../../components/common/Button';
-import Modal from '../../components/common/Modal';
-import AppointmentForm from '../../components/appointments/AppointmentForm';
-import { MapPin, Phone, Clock, ArrowLeft, Calendar, ShieldCheck } from 'lucide-react';
+import DemoBanner from '../../components/common/DemoBanner';
+import {
+  MapPin,
+  Phone,
+  Clock,
+  ArrowLeft,
+  Calendar,
+  ShieldCheck,
+  Building,
+  Info,
+  Users,
+  Bed
+} from 'lucide-react';
 
 export const FacilityDetails = () => {
   const { id } = useParams();
+  const { t } = useTranslation();
+
   const [facility, setFacility] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [bookingModalOpen, setBookingModalOpen] = useState(false);
+  const [appointmentModalOpen, setAppointmentModalOpen] = useState(false);
 
   useEffect(() => {
     const fetchFacility = async () => {
@@ -31,111 +47,211 @@ export const FacilityDetails = () => {
     fetchFacility();
   }, [id]);
 
-  if (loading) return <Loader message="Loading facility profile..." />;
+  if (loading) return <Loader message="Loading healthcare facility profile..." />;
   if (!facility) {
     return (
       <div className="container" style={{ padding: '4rem 1rem', textAlign: 'center' }}>
-        <h2>Facility not found</h2>
-        <Link to="/facilities">Return to Directory</Link>
+        <h2>Facility Record Not Found</h2>
+        <p style={{ color: 'var(--color-text-secondary)', marginBottom: '1.5rem' }}>
+          The requested health center does not exist in the demonstration catalog.
+        </p>
+        <Link to="/facilities" className="btn btn-primary">
+          <ArrowLeft size={16} /> Return to Facilities Directory
+        </Link>
       </div>
     );
   }
 
+  const hasCoordinates = facility.location?.coordinates && facility.location.coordinates.length === 2;
+  const coordinatesCenter = hasCoordinates ? [facility.location.coordinates[1], facility.location.coordinates[0]] : null;
+
   return (
-    <div className="container" style={{ padding: '2.5rem 1rem 4rem', maxWidth: '900px' }}>
-      <Link to="/facilities" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', color: 'var(--color-primary)', marginBottom: '1.5rem', fontWeight: 500 }}>
-        <ArrowLeft size={16} /> Back to Facilities
-      </Link>
+    <div>
+      <DemoBanner />
 
-      <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
-          <div>
-            <span className="badge badge-success" style={{ marginBottom: '0.5rem' }}>
-              {facility.tier}
-            </span>
-            <h1 style={{ fontSize: '1.85rem', color: 'var(--color-primary)', margin: 0 }}>
-              {facility.name}
-            </h1>
-            <span style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)' }}>
-              Facility Code: {facility.facilityCode}
-            </span>
-          </div>
+      <div className="container" style={{ padding: '2rem 1rem 4rem', maxWidth: '960px' }}>
+        <Breadcrumbs
+          items={[
+            { label: t('nav.facilities'), to: '/facilities' },
+            { label: facility.name }
+          ]}
+        />
 
-          <Button variant="primary" onClick={() => setBookingModalOpen(true)}>
-            <Calendar size={16} /> Book Appointment
-          </Button>
+        <div style={{ marginBottom: '1.25rem' }}>
+          <Link
+            to="/facilities"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.4rem',
+              color: 'var(--color-primary)',
+              fontSize: '0.85rem',
+              fontWeight: 500
+            }}
+          >
+            <ArrowLeft size={15} /> {t('common.back')} to Search Results
+          </Link>
         </div>
 
-        <div className="grid sm:grid-cols-2" style={{ gap: '1.5rem', backgroundColor: 'var(--color-bg-main)', padding: '1.25rem', borderRadius: 'var(--radius-md)' }}>
-          <div>
-            <h4 style={{ fontSize: '0.9rem', color: 'var(--color-text-muted)', marginBottom: '0.4rem' }}>LOCATION</h4>
-            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem', fontSize: '0.95rem' }}>
-              <MapPin size={18} color="var(--color-primary)" />
-              <div>
-                {facility.address?.street && <div>{facility.address.street}</div>}
-                <div>{facility.address?.village}, {facility.address?.taluka}</div>
-                <div>{facility.address?.district}, Maharashtra - {facility.address?.pincode}</div>
+        {/* Facility Header Card */}
+        <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', marginBottom: '1.5rem' }}>
+          <div style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'flex-start',
+            flexWrap: 'wrap',
+            gap: '1rem'
+          }}>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                <span className="badge badge-accepted" style={{ fontSize: '0.8rem' }}>
+                  {facility.tier}
+                </span>
+                <span style={{ fontSize: '0.78rem', color: 'var(--color-text-muted)' }}>
+                  Code: {facility.facilityCode}
+                </span>
               </div>
+
+              <h1 style={{ fontSize: '2rem', color: 'var(--color-primary)', margin: 0, fontWeight: 800 }}>
+                {facility.name}
+              </h1>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginTop: '0.4rem', color: 'var(--color-text-secondary)', fontSize: '0.95rem' }}>
+                <MapPin size={17} color="var(--color-primary-light)" />
+                <span>
+                  {facility.village ? `${facility.village}, ` : ''}{facility.taluka}, {facility.district} District &bull; PIN: {facility.pincode}
+                </span>
+              </div>
+            </div>
+
+            <Button
+              variant="primary"
+              onClick={() => setAppointmentModalOpen(true)}
+              style={{ padding: '0.75rem 1.5rem', fontSize: '0.95rem' }}
+            >
+              <Calendar size={18} /> {t('facilities.requestAppointment')}
+            </Button>
+          </div>
+
+          {/* Demonstration Notice */}
+          <div className="notice-box-warning" style={{ fontSize: '0.85rem' }}>
+            <Info size={18} style={{ flexShrink: 0 }} />
+            <div>
+              <strong>Demonstration Profile:</strong> Operating hours, doctor strength, and outpatient slots shown are synthetic values for Maharashtra healthcare access simulation.
             </div>
           </div>
 
-          <div>
-            <h4 style={{ fontSize: '0.9rem', color: 'var(--color-text-muted)', marginBottom: '0.4rem' }}>CONTACT & HOURS</h4>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', fontSize: '0.95rem' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <Phone size={16} color="var(--color-primary)" />
-                <span>{facility.contact?.phone}</span>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          {/* Key Indicators Grid */}
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+            gap: '1rem',
+            backgroundColor: 'var(--color-bg-main)',
+            padding: '1.25rem',
+            borderRadius: 'var(--radius-md)'
+          }}>
+            <div>
+              <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', display: 'block', textTransform: 'uppercase' }}>
+                {t('facilities.operatingHours')}
+              </span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginTop: '0.25rem', fontSize: '0.95rem', fontWeight: 600 }}>
                 <Clock size={16} color="var(--color-primary)" />
                 <span>
                   {facility.operationalHours?.is24x7Emergency
-                    ? '24x7 Emergency Services Available'
+                    ? '24x7 Emergency Services'
                     : `${facility.operationalHours?.opensAt} - ${facility.operationalHours?.closesAt}`}
                 </span>
               </div>
             </div>
-          </div>
-        </div>
 
-        <div>
-          <h3 style={{ fontSize: '1.15rem', color: 'var(--color-primary)', marginBottom: '0.75rem' }}>
-            Services & Facilities Available
-          </h3>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
-            {facility.servicesAvailable?.map((srv, idx) => (
-              <span key={idx} style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '0.3rem',
-                backgroundColor: 'var(--color-accent-subtle)',
-                color: 'var(--color-primary-dark)',
-                padding: '0.35rem 0.75rem',
-                borderRadius: 'var(--radius-full)',
-                fontSize: '0.85rem'
-              }}>
-                <ShieldCheck size={14} /> {srv}
+            <div>
+              <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', display: 'block', textTransform: 'uppercase' }}>
+                {t('facilities.contactInfo')}
               </span>
-            ))}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginTop: '0.25rem', fontSize: '0.95rem', fontWeight: 600 }}>
+                <Phone size={16} color="var(--color-primary)" />
+                <span>{facility.contact?.phone || 'Government Helpline 108'}</span>
+              </div>
+            </div>
+
+            {facility.doctorsCount && (
+              <div>
+                <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', display: 'block', textTransform: 'uppercase' }}>
+                  Doctor Roster
+                </span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginTop: '0.25rem', fontSize: '0.95rem', fontWeight: 600 }}>
+                  <Users size={16} color="var(--color-primary)" />
+                  <span>{facility.doctorsCount} Medical Officers Assigned</span>
+                </div>
+              </div>
+            )}
+
+            {facility.bedsCount && (
+              <div>
+                <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', display: 'block', textTransform: 'uppercase' }}>
+                  Inpatient Bed Strength
+                </span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginTop: '0.25rem', fontSize: '0.95rem', fontWeight: 600 }}>
+                  <Bed size={16} color="var(--color-primary)" />
+                  <span>{facility.bedsCount} Total Hospital Beds</span>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Services Available */}
+          <div>
+            <h3 style={{ fontSize: '1.15rem', color: 'var(--color-primary)', marginBottom: '0.75rem' }}>
+              {t('facilities.servicesOffered')}
+            </h3>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '0.65rem' }}>
+              {facility.servicesAvailable?.map((srv, idx) => (
+                <div
+                  key={idx}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem',
+                    padding: '0.65rem 0.85rem',
+                    backgroundColor: 'var(--color-bg-main)',
+                    borderRadius: 'var(--radius-md)',
+                    border: '1px solid var(--color-border)',
+                    fontSize: '0.9rem'
+                  }}
+                >
+                  <ShieldCheck size={18} color="var(--color-success)" style={{ flexShrink: 0 }} />
+                  <span>{srv}</span>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
-      </div>
 
-      {/* Booking Modal */}
-      <Modal
-        isOpen={bookingModalOpen}
-        onClose={() => setBookingModalOpen(false)}
-        title={`Book Appointment - ${facility.name}`}
-      >
-        <AppointmentForm
-          facilityId={facility._id}
-          onSubmit={() => {
-            alert('Appointment booking endpoint will process this in Phase 2.');
-            setBookingModalOpen(false);
-          }}
-          onCancel={() => setBookingModalOpen(false)}
+        {/* Location & Map Section */}
+        {hasCoordinates && (
+          <div className="card" style={{ marginBottom: '1.5rem' }}>
+            <h3 style={{ fontSize: '1.15rem', color: 'var(--color-primary)', marginBottom: '0.75rem' }}>
+              {t('facilities.locationMap')}
+            </h3>
+            <FacilityMap
+              facilities={[facility]}
+              center={coordinatesCenter}
+              zoom={13}
+              height="380px"
+            />
+            <p style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)', marginTop: '0.5rem', margin: '0.5rem 0 0' }}>
+              Geographic coordinates: [{facility.location.coordinates[1].toFixed(4)}, {facility.location.coordinates[0].toFixed(4)}]
+            </p>
+          </div>
+        )}
+
+        {/* Appointment Request Modal */}
+        <AppointmentRequestModal
+          isOpen={appointmentModalOpen}
+          onClose={() => setAppointmentModalOpen(false)}
+          facility={facility}
         />
-      </Modal>
+      </div>
     </div>
   );
 };
