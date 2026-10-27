@@ -1,37 +1,42 @@
-/**
- * Notification Service
- * Handles user alerts, SMS dispatch triggers, and in-app notifications.
- */
 const Notification = require('../models/Notification');
+const ApiError = require('../utils/ApiError');
 
-const createNotification = async (notificationData) => {
-  return Notification.create(notificationData);
-};
-
-const getUserNotifications = async (recipientId) => {
-  return Notification.find({ recipientId })
+const getUserNotifications = async (userId, limit = 50) => {
+  return Notification.find({ user: userId })
     .sort({ createdAt: -1 })
-    .limit(50);
+    .limit(limit);
 };
 
-const markAsRead = async (notificationId, recipientId) => {
-  return Notification.findOneAndUpdate(
-    { _id: notificationId, recipientId },
-    { isRead: true, readAt: new Date() },
-    { new: true }
-  );
+const getUnreadCount = async (userId) => {
+  const count = await Notification.countDocuments({ user: userId, isRead: false });
+  return { unreadCount: count };
 };
 
-const markAllAsRead = async (recipientId) => {
-  return Notification.updateMany(
-    { recipientId, isRead: false },
+const markAsRead = async (id, userId) => {
+  const notification = await Notification.findOne({ _id: id, user: userId });
+  if (!notification) {
+    throw new ApiError(404, 'Notification not found or access denied');
+  }
+
+  notification.isRead = true;
+  notification.readAt = new Date();
+  await notification.save();
+
+  return notification;
+};
+
+const markAllAsRead = async (userId) => {
+  const result = await Notification.updateMany(
+    { user: userId, isRead: false },
     { isRead: true, readAt: new Date() }
   );
+
+  return { updatedCount: result.modifiedCount };
 };
 
 module.exports = {
-  createNotification,
   getUserNotifications,
+  getUnreadCount,
   markAsRead,
   markAllAsRead
 };

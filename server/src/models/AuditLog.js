@@ -2,39 +2,49 @@ const mongoose = require('mongoose');
 
 const auditLogSchema = new mongoose.Schema(
   {
-    actorId: {
+    actor: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
-      required: true
+      required: [true, 'Actor reference is required'],
+      index: true
     },
     action: {
       type: String,
-      required: true
+      required: [true, 'Audit action name is required'],
+      trim: true
     },
-    targetCollection: {
+    resourceType: {
       type: String,
-      required: true
+      required: [true, 'Resource type is required'],
+      trim: true,
+      index: true
     },
-    targetId: {
+    resourceId: {
       type: mongoose.Schema.Types.ObjectId,
-      default: null
+      default: null,
+      index: true
     },
-    ipAddress: {
-      type: String,
-      default: ''
+    timestamp: {
+      type: Date,
+      default: Date.now,
+      index: true
     },
-    details: {
+    metadata: {
       type: mongoose.Schema.Types.Mixed,
       default: {}
     }
   },
   {
-    timestamps: true
+    timestamps: false
   }
 );
 
-auditLogSchema.index({ targetCollection: 1, targetId: 1 });
-auditLogSchema.index({ actorId: 1, createdAt: -1 });
+// Virtual alias actorId
+auditLogSchema.virtual('actorId').get(function () {
+  return this.actor;
+});
+
+auditLogSchema.index({ resourceType: 1, resourceId: 1, timestamp: -1 });
 
 const AuditLog = mongoose.model('AuditLog', auditLogSchema);
 module.exports = AuditLog;

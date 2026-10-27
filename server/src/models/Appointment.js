@@ -2,70 +2,87 @@ const mongoose = require('mongoose');
 
 const appointmentSchema = new mongoose.Schema(
   {
-    patientId: {
+    patient: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
-      required: true
+      required: [true, 'Patient reference is required'],
+      index: true
     },
-    facilityId: {
+    facility: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Facility',
-      required: true
+      required: [true, 'Facility reference is required'],
+      index: true
     },
-    doctorId: {
+    requestedService: {
+      type: String,
+      required: [true, 'Requested service is required'],
+      trim: true
+    },
+    preferredDate: {
+      type: Date,
+      required: [true, 'Preferred appointment date is required']
+    },
+    preferredTime: {
+      type: String,
+      required: [true, 'Preferred appointment time slot is required'],
+      trim: true
+    },
+    tokenNumber: {
+      type: Number,
+      default: 1
+    },
+    notes: {
+      type: String,
+      trim: true,
+      default: ''
+    },
+    status: {
+      type: String,
+      enum: ['pending', 'accepted', 'rejected', 'cancelled', 'completed'],
+      default: 'pending',
+      lowercase: true,
+      index: true
+    },
+    decisionReason: {
+      type: String,
+      default: '',
+      trim: true
+    },
+    reviewedBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
       default: null
     },
-    bookedBy: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'User',
-      required: true
-    },
-    appointmentDate: {
-      type: Date,
-      required: true
-    },
-    timeSlot: {
-      type: String,
-      required: true
-    },
-    tokenNumber: {
-      type: Number,
-      required: true
-    },
-    department: {
-      type: String,
-      default: 'General Medicine'
-    },
-    status: {
-      type: String,
-      enum: ['Scheduled', 'Confirmed', 'Completed', 'Cancelled', 'NoShow'],
-      default: 'Scheduled'
-    },
-    symptoms: {
-      type: String,
-      trim: true
-    },
     consultationNotes: {
       type: String,
-      default: ''
+      default: '',
+      trim: true
     },
-    prescribedMedicines: [
-      {
-        name: String,
-        dosage: String,
-        duration: String
-      }
-    ]
+    isDemoData: {
+      type: Boolean,
+      default: true
+    }
   },
   {
-    timestamps: true
+    timestamps: true,
+    toJSON: { virtuals: true },
+    toObject: { virtuals: true }
   }
 );
 
-appointmentSchema.index({ facilityId: 1, appointmentDate: 1, tokenNumber: 1 });
-appointmentSchema.index({ patientId: 1, appointmentDate: -1 });
+// Virtual aliases for compatibility
+appointmentSchema.virtual('patientId').get(function () {
+  return this.patient;
+});
+
+appointmentSchema.virtual('facilityId').get(function () {
+  return this.facility;
+});
+
+// Indexes
+appointmentSchema.index({ facility: 1, preferredDate: 1, status: 1 });
+appointmentSchema.index({ patient: 1, preferredDate: -1 });
 
 const Appointment = mongoose.model('Appointment', appointmentSchema);
 module.exports = Appointment;

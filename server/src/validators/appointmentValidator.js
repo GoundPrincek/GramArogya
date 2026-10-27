@@ -1,48 +1,73 @@
+const { z } = require('zod');
 const ApiError = require('../utils/ApiError');
 
-/**
- * Validate appointment booking payload
- */
+const bookAppointmentSchema = z.object({
+  facility: z.string().min(1, 'Facility ID is required'),
+  requestedService: z.string().trim().min(2, 'Requested service is required'),
+  preferredDate: z.string().min(1, 'Preferred appointment date is required'),
+  preferredTime: z.string().trim().min(1, 'Preferred time slot is required'),
+  notes: z.string().trim().optional()
+});
+
 const validateBookAppointment = (req, res, next) => {
-  const { facilityId, appointmentDate, timeSlot } = req.body;
-  const errors = [];
+  try {
+    // Map facilityId -> facility if passed
+    if (!req.body.facility && req.body.facilityId) {
+      req.body.facility = req.body.facilityId;
+    }
+    // Map service -> requestedService if passed
+    if (!req.body.requestedService && req.body.service) {
+      req.body.requestedService = req.body.service;
+    }
+    // Map appointmentDate -> preferredDate if passed
+    if (!req.body.preferredDate && req.body.appointmentDate) {
+      req.body.preferredDate = req.body.appointmentDate;
+    }
+    // Map timeSlot -> preferredTime if passed
+    if (!req.body.preferredTime && req.body.timeSlot) {
+      req.body.preferredTime = req.body.timeSlot;
+    }
+    // Map symptoms -> notes if passed
+    if (!req.body.notes && req.body.symptoms) {
+      req.body.notes = req.body.symptoms;
+    }
 
-  if (!facilityId) {
-    errors.push({ field: 'facilityId', message: 'Healthcare facility ID is required' });
+    const parsed = bookAppointmentSchema.parse(req.body);
+    req.body = parsed;
+    next();
+  } catch (err) {
+    const errors = err.errors.map((e) => ({
+      field: e.path.join('.'),
+      message: e.message
+    }));
+    next(new ApiError(400, 'Validation failed for appointment booking', errors));
   }
-
-  if (!appointmentDate || isNaN(Date.parse(appointmentDate))) {
-    errors.push({ field: 'appointmentDate', message: 'Valid appointment date is required' });
-  }
-
-  if (!timeSlot || timeSlot.trim().length === 0) {
-    errors.push({ field: 'timeSlot', message: 'Time slot selection is required' });
-  }
-
-  if (errors.length > 0) {
-    return next(new ApiError(400, 'Validation failed for appointment booking', errors));
-  }
-
-  next();
 };
 
-/**
- * Validate appointment status update
- */
-const validateUpdateStatus = (req, res, next) => {
-  const { status } = req.body;
-  const validStatuses = ['Scheduled', 'Confirmed', 'Completed', 'Cancelled', 'NoShow'];
+const rejectReasonSchema = z.object({
+  decisionReason: z.string().trim().min(3, 'A clear reason for rejecting the appointment is required')
+});
 
-  if (!status || !validStatuses.includes(status)) {
-    return next(
-      new ApiError(400, `Invalid status. Must be one of: ${validStatuses.join(', ')}`)
-    );
+const validateRejectReason = (req, res, next) => {
+  try {
+    // Map reason -> decisionReason if passed
+    if (!req.body.decisionReason && req.body.reason) {
+      req.body.decisionReason = req.body.reason;
+    }
+    const parsed = rejectReasonSchema.parse(req.body);
+    req.body = parsed;
+    next();
+  } catch (err) {
+    const errors = err.errors.map((e) => ({
+      field: e.path.join('.'),
+      message: e.message
+    }));
+    next(new ApiError(400, 'Rejection reason is required', errors));
   }
-
-  next();
 };
 
 module.exports = {
   validateBookAppointment,
-  validateUpdateStatus
+  validateRejectReason,
+  bookAppointmentSchema
 };

@@ -2,7 +2,7 @@ const asyncHandler = require('../utils/asyncHandler');
 const authService = require('../services/authService');
 
 /**
- * @desc    Register a new user
+ * @desc    Register a new patient account
  * @route   POST /api/auth/register
  * @access  Public
  */
@@ -30,6 +30,18 @@ const login = asyncHandler(async (req, res) => {
 });
 
 /**
+ * @desc    Sign out user / clear session
+ * @route   POST /api/auth/logout
+ * @access  Public
+ */
+const logout = asyncHandler(async (req, res) => {
+  res.status(200).json({
+    success: true,
+    message: 'Logged out successfully'
+  });
+});
+
+/**
  * @desc    Get currently logged in user profile
  * @route   GET /api/auth/me
  * @access  Private
@@ -38,7 +50,7 @@ const getMe = asyncHandler(async (req, res) => {
   const user = await authService.getCurrentUser(req.user.id);
   res.status(200).json({
     success: true,
-    message: 'Profile fetched successfully',
+    message: 'Current profile retrieved successfully',
     data: user
   });
 });
@@ -46,5 +58,6 @@ const getMe = asyncHandler(async (req, res) => {
 module.exports = {
   register,
   login,
+  logout,
   getMe
 };

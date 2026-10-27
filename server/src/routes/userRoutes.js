@@ -4,8 +4,14 @@ const userController = require('../controllers/userController');
 const { protect } = require('../middleware/authMiddleware');
 const { authorize } = require('../middleware/roleMiddleware');
 
-router.get('/', protect, authorize('admin'), userController.getAllUsers);
-router.get('/:id', protect, userController.getUserById);
-router.put('/:id', protect, userController.updateUser);
+router.use(protect);
+
+// Current user profile management
+router.get('/me', userController.getMyProfile);
+router.patch('/me', userController.updateMyProfile);
+
+// Administrator management
+router.get('/', authorize('admin'), userController.getAllUsers);
+router.patch('/:id/role', authorize('admin'), userController.updateUserRole);
 
 module.exports = router;

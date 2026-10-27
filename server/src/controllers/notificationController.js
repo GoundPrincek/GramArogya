@@ -2,7 +2,7 @@ const asyncHandler = require('../utils/asyncHandler');
 const notificationService = require('../services/notificationService');
 
 /**
- * @desc    Get notifications for logged-in user
+ * @desc    Get user's notifications
  * @route   GET /api/notifications
  * @access  Private
  */
@@ -10,14 +10,28 @@ const getMyNotifications = asyncHandler(async (req, res) => {
   const notifications = await notificationService.getUserNotifications(req.user.id);
   res.status(200).json({
     success: true,
+    count: notifications.length,
     message: 'Notifications retrieved successfully',
     data: notifications
   });
 });
 
 /**
+ * @desc    Get unread notification count
+ * @route   GET /api/notifications/unread-count
+ * @access  Private
+ */
+const getUnreadCount = asyncHandler(async (req, res) => {
+  const result = await notificationService.getUnreadCount(req.user.id);
+  res.status(200).json({
+    success: true,
+    data: result
+  });
+});
+
+/**
  * @desc    Mark single notification as read
- * @route   PUT /api/notifications/:id/read
+ * @route   PATCH /api/notifications/:id/read
  * @access  Private
  */
 const markRead = asyncHandler(async (req, res) => {
@@ -30,20 +44,22 @@ const markRead = asyncHandler(async (req, res) => {
 });
 
 /**
- * @desc    Mark all user notifications as read
- * @route   PUT /api/notifications/read-all
+ * @desc    Mark all user's notifications as read
+ * @route   PATCH /api/notifications/read-all
  * @access  Private
  */
 const markAllRead = asyncHandler(async (req, res) => {
-  await notificationService.markAllAsRead(req.user.id);
+  const result = await notificationService.markAllAsRead(req.user.id);
   res.status(200).json({
     success: true,
-    message: 'All notifications marked as read'
+    message: 'All notifications marked as read',
+    data: result
   });
 });
 
 module.exports = {
   getMyNotifications,
+  getUnreadCount,
   markRead,
   markAllRead
 };

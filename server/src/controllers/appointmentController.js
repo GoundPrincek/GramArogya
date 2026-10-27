@@ -2,77 +2,122 @@ const asyncHandler = require('../utils/asyncHandler');
 const appointmentService = require('../services/appointmentService');
 
 /**
- * @desc    Book a new appointment
+ * @desc    Submit an outpatient appointment request
  * @route   POST /api/appointments
- * @access  Private
+ * @access  Private (Patient / Staff / Admin)
  */
 const bookAppointment = asyncHandler(async (req, res) => {
-  const bookingData = {
-    ...req.body,
-    patientId: req.body.patientId || req.user.id,
-    bookedBy: req.user.id
-  };
-
-  const appointment = await appointmentService.bookAppointment(bookingData);
+  const appointment = await appointmentService.bookAppointment(req.body, req.user);
   res.status(201).json({
     success: true,
-    message: 'Appointment booked successfully',
+    message: 'Appointment request submitted successfully',
     data: appointment
   });
 });
 
 /**
- * @desc    Get appointments for the logged-in patient
- * @route   GET /api/appointments/my
- * @access  Private (Patient)
+ * @desc    Get appointments within user's permitted scope
+ * @route   GET /api/appointments
+ * @access  Private
  */
-const getMyAppointments = asyncHandler(async (req, res) => {
-  const appointments = await appointmentService.getMyAppointments(req.user.id);
+const getAppointments = asyncHandler(async (req, res) => {
+  const appointments = await appointmentService.getAppointments(req.user, req.query);
   res.status(200).json({
     success: true,
+    count: appointments.length,
     message: 'Appointments retrieved successfully',
     data: appointments
   });
 });
 
 /**
- * @desc    Get appointments for a specific facility
- * @route   GET /api/appointments/facility/:facilityId
- * @access  Private (Staff / Doctor / Admin)
+ * @desc    Get single appointment details
+ * @route   GET /api/appointments/:id
+ * @access  Private
  */
-const getFacilityAppointments = asyncHandler(async (req, res) => {
-  const appointments = await appointmentService.getFacilityAppointments(
-    req.params.facilityId,
-    req.query.date
-  );
+const getAppointmentById = asyncHandler(async (req, res) => {
+  const appointment = await appointmentService.getAppointmentById(req.params.id, req.user);
   res.status(200).json({
     success: true,
-    message: 'Facility schedule retrieved successfully',
-    data: appointments
+    message: 'Appointment details retrieved successfully',
+    data: appointment
   });
 });
 
 /**
- * @desc    Update appointment status
- * @route   PUT /api/appointments/:id/status
- * @access  Private (Staff / Doctor)
+ * @desc    Cancel an appointment request
+ * @route   PATCH /api/appointments/:id/cancel
+ * @access  Private (Patient self / Staff / Admin)
  */
-const updateStatus = asyncHandler(async (req, res) => {
-  const appointment = await appointmentService.updateAppointmentStatus(
+const cancelAppointment = asyncHandler(async (req, res) => {
+  const appointment = await appointmentService.cancelAppointment(
     req.params.id,
-    req.body.status,
-    req.body.consultationNotes
+    req.body.reason,
+    req.user
   );
   res.status(200).json({
     success: true,
-    message: 'Appointment status updated successfully',
+    message: 'Appointment request cancelled successfully',
+    data: appointment
+  });
+});
+
+/**
+ * @desc    Accept an appointment request
+ * @route   PATCH /api/appointments/:id/accept
+ * @access  Private (Staff / Admin)
+ */
+const acceptAppointment = asyncHandler(async (req, res) => {
+  const appointment = await appointmentService.acceptAppointment(req.params.id, req.user);
+  res.status(200).json({
+    success: true,
+    message: 'Appointment request accepted successfully',
+    data: appointment
+  });
+});
+
+/**
+ * @desc    Reject an appointment request
+ * @route   PATCH /api/appointments/:id/reject
+ * @access  Private (Staff / Admin)
+ */
+const rejectAppointment = asyncHandler(async (req, res) => {
+  const appointment = await appointmentService.rejectAppointment(
+    req.params.id,
+    req.body.decisionReason,
+    req.user
+  );
+  res.status(200).json({
+    success: true,
+    message: 'Appointment request rejected',
+    data: appointment
+  });
+});
+
+/**
+ * @desc    Mark appointment completed
+ * @route   PATCH /api/appointments/:id/complete
+ * @access  Private (Staff / Admin)
+ */
+const completeAppointment = asyncHandler(async (req, res) => {
+  const appointment = await appointmentService.completeAppointment(
+    req.params.id,
+    req.body.consultationNotes,
+    req.user
+  );
+  res.status(200).json({
+    success: true,
+    message: 'Appointment consultation marked as completed',
     data: appointment
   });
 });
 
 module.exports = {
   bookAppointment,
-  getMyAppointments,
-  getFacilityAppointments,
-  updateStatus
+  getAppointments,
+  getAppointmentById,
+  cancelAppointment,
+  acceptAppointment,
+  rejectAppointment,
+  completeAppointment
 };

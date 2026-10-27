@@ -2,31 +2,50 @@ const mongoose = require('mongoose');
 
 const notificationSchema = new mongoose.Schema(
   {
-    recipientId: {
+    user: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
-      required: true
+      required: [true, 'User reference is required'],
+      index: true
     },
     title: {
       type: String,
-      required: true
+      required: [true, 'Notification title is required'],
+      trim: true
     },
     message: {
       type: String,
-      required: true
+      required: [true, 'Notification message is required'],
+      trim: true
     },
     type: {
       type: String,
-      enum: ['APPOINTMENT_REMINDER', 'REFERRAL_UPDATE', 'EMERGENCY_ALERT', 'SYSTEM_BROADCAST'],
-      required: true
+      enum: [
+        'appointment',
+        'referral',
+        'broadcast',
+        'system',
+        'APPOINTMENT_REMINDER',
+        'REFERRAL_UPDATE',
+        'EMERGENCY_ALERT'
+      ],
+      default: 'system'
     },
-    referenceId: {
-      type: mongoose.Schema.Types.ObjectId,
-      default: null
+    relatedResource: {
+      resourceType: {
+        type: String,
+        enum: ['Appointment', 'Referral', 'Facility', 'User', null],
+        default: null
+      },
+      resourceId: {
+        type: mongoose.Schema.Types.ObjectId,
+        default: null
+      }
     },
     isRead: {
       type: Boolean,
-      default: false
+      default: false,
+      index: true
     },
     readAt: {
       type: Date,
@@ -34,11 +53,18 @@ const notificationSchema = new mongoose.Schema(
     }
   },
   {
-    timestamps: true
+    timestamps: true,
+    toJSON: { virtuals: true },
+    toObject: { virtuals: true }
   }
 );
 
-notificationSchema.index({ recipientId: 1, isRead: 1, createdAt: -1 });
+// Virtual alias for backward compatibility
+notificationSchema.virtual('recipientId').get(function () {
+  return this.user;
+});
+
+notificationSchema.index({ user: 1, isRead: 1, createdAt: -1 });
 
 const Notification = mongoose.model('Notification', notificationSchema);
 module.exports = Notification;

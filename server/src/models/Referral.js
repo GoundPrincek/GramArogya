@@ -1,68 +1,127 @@
 const mongoose = require('mongoose');
 
-const referralSchema = new mongoose.Schema(
+const statusHistorySchema = new mongoose.Schema(
   {
-    patientId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'User',
-      required: true
-    },
-    fromFacilityId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'Facility',
-      required: true
-    },
-    toFacilityId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'Facility',
-      required: true
-    },
-    referringDoctorId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'User',
-      required: true
-    },
-    urgencyLevel: {
-      type: String,
-      enum: ['Normal', 'Urgent', 'Emergency'],
-      default: 'Normal'
-    },
-    reasonForReferral: {
-      type: String,
-      required: [true, 'Reason for referral is required']
-    },
-    provisionalDiagnosis: {
-      type: String,
-      required: [true, 'Provisional diagnosis is required']
-    },
-    vitals: {
-      bloodPressure: String,
-      pulseRate: Number,
-      spo2: Number,
-      temperature: Number
-    },
     status: {
       type: String,
-      enum: ['Pending', 'Accepted', 'EnRoute', 'Arrived', 'Completed', 'Rejected'],
-      default: 'Pending'
+      enum: ['created', 'sent', 'accepted', 'in_progress', 'completed', 'rejected'],
+      required: true
     },
-    receivingDoctorId: {
+    timestamp: {
+      type: Date,
+      default: Date.now
+    },
+    actor: {
+      type: String,
+      default: 'Authorized Medical Officer'
+    },
+    actorId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
       default: null
     },
-    actionNotes: {
+    note: {
       type: String,
       default: ''
     }
   },
+  { _id: false }
+);
+
+const referralSchema = new mongoose.Schema(
   {
-    timestamps: true
+    referralCode: {
+      type: String,
+      unique: true,
+      sparse: true
+    },
+    patient: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      required: [true, 'Patient reference is required'],
+      index: true
+    },
+    referringFacility: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Facility',
+      required: [true, 'Referring facility reference is required'],
+      index: true
+    },
+    receivingFacility: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Facility',
+      required: [true, 'Receiving facility reference is required'],
+      index: true
+    },
+    referralReason: {
+      type: String,
+      required: [true, 'Referral clinical reason is required'],
+      trim: true
+    },
+    provisionalDiagnosis: {
+      type: String,
+      trim: true,
+      default: ''
+    },
+    urgencyLevel: {
+      type: String,
+      enum: ['Routine', 'Urgent', 'Emergency', 'Normal'],
+      default: 'Routine'
+    },
+    vitals: {
+      bloodPressure: String,
+      pulse: Number,
+      spo2: String,
+      temp: String
+    },
+    status: {
+      type: String,
+      enum: ['created', 'sent', 'accepted', 'in_progress', 'completed', 'rejected'],
+      default: 'created',
+      lowercase: true,
+      index: true
+    },
+    statusHistory: [statusHistorySchema],
+    createdBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      required: [true, 'Staff creator reference is required']
+    },
+    isDemoData: {
+      type: Boolean,
+      default: true
+    }
+  },
+  {
+    timestamps: true,
+    toJSON: { virtuals: true },
+    toObject: { virtuals: true }
   }
 );
 
-referralSchema.index({ toFacilityId: 1, status: 1, urgencyLevel: 1 });
-referralSchema.index({ patientId: 1, createdAt: -1 });
+// Pre-save to auto-generate referralCode and seed initial statusHistory if empty
+referralSchema.pre('save', function (next) {
+  if (!this.referralCode) {
+    const randomDigits = Math.floor(1000 + Math.random() * 9000);
+    this.referralCode = `REF-MH-${new Date().getFullYear()}-${randomDigits}`;
+  }
+  if (!this.statusHistory || this.statusHistory.length === 0) {
+    this.statusHistory = [
+      {
+        status: this.status || 'created',
+        timestamp: new Date(),
+        actor: 'Initiating Healthcare Staff',
+        actorId: this.createdBy,
+        note: 'Referral case created in platform registry.'
+      }
+    ];
+  }
+  next();
+});
+
+// Indexes
+referralSchema.index({ referringFacility: 1, receivingFacility: 1, status: 1 });
+referralSchema.index({ patient: 1, createdAt: -1 });
 
 const Referral = mongoose.model('Referral', referralSchema);
 module.exports = Referral;

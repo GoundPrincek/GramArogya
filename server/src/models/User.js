@@ -8,27 +8,28 @@ const userSchema = new mongoose.Schema(
       required: [true, 'Name is required'],
       trim: true
     },
+    email: {
+      type: String,
+      trim: true,
+      lowercase: true,
+      sparse: true,
+      match: [/^\S+@\S+\.\S+$/, 'Please enter a valid email address']
+    },
     phone: {
       type: String,
       required: [true, '10-digit mobile number is required'],
       unique: true,
       trim: true
     },
-    email: {
+    passwordHash: {
       type: String,
-      trim: true,
-      lowercase: true,
-      sparse: true
-    },
-    password: {
-      type: String,
-      required: [true, 'Password is required'],
-      minlength: [6, 'Password must be at least 6 characters']
+      required: [true, 'Password hash is required']
     },
     role: {
       type: String,
-      enum: ['patient', 'asha_worker', 'doctor', 'staff', 'admin'],
-      default: 'patient'
+      enum: ['patient', 'staff', 'doctor', 'asha_worker', 'admin'],
+      default: 'patient',
+      index: true
     },
     facilityId: {
       type: mongoose.Schema.Types.ObjectId,
@@ -52,22 +53,53 @@ const userSchema = new mongoose.Schema(
     }
   },
   {
-    timestamps: true
+    timestamps: true,
+    toJSON: {
+      virtuals: true,
+      transform: function (doc, ret) {
+        delete ret.passwordHash;
+        delete ret.password;
+        return ret;
+      }
+    },
+    toObject: {
+      virtuals: true,
+      transform: function (doc, ret) {
+        delete ret.passwordHash;
+        delete ret.password;
+        return ret;
+      }
+    }
   }
 );
 
-// Hash password before saving if modified
-userSchema.pre('save', async function (next) {
-  if (!this.isModified('password')) return next();
-  const salt = await bcrypt.genSalt(10);
-  this.password = await bcrypt.hash(this.password, salt);
+// Virtual for password input
+userSchema.virtual('password')
+  .set(function (password) {
+    this._password = password;
+  })
+  .get(function () {
+    return this._password;
+  });
+
+// Pre-validate/save hook to hash password if provided
+userSchema.pre('validate', async function (next) {
+  if (this._password) {
+    const salt = await bcrypt.genSalt(10);
+    this.passwordHash = await bcrypt.hash(this._password, salt);
+  }
   next();
 });
 
 // Compare entered password with hashed password
 userSchema.methods.matchPassword = async function (enteredPassword) {
-  return bcrypt.compare(enteredPassword, this.password);
+  if (!this.passwordHash) return false;
+  return bcrypt.compare(enteredPassword, this.passwordHash);
 };
+
+// Compound index
+userSchema.index({ phone: 1 });
+userSchema.index({ email: 1 });
 
 const User = mongoose.model('User', userSchema);
 module.exports = User;
