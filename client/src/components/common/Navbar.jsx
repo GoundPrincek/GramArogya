@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, NavLink, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../hooks/useAuth';
 import LanguageSwitcher from './LanguageSwitcher';
+import notificationService from '../../services/notificationService';
 import {
   Activity,
   Menu,
@@ -12,14 +13,59 @@ import {
   LayoutDashboard,
   Shield,
   Stethoscope,
-  Building
+  Building,
+  Bell,
+  CheckCheck
 } from 'lucide-react';
 
 export const Navbar = () => {
   const { t } = useTranslation();
   const { user, switchDemoRole, logout } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [notifOpen, setNotifOpen] = useState(false);
+  const [notifications, setNotifications] = useState([]);
+  const [unreadCount, setUnreadCount] = useState(0);
   const navigate = useNavigate();
+
+  const fetchNotifications = async () => {
+    if (!user) return;
+    try {
+      const [listRes, countRes] = await Promise.allSettled([
+        notificationService.getNotifications(),
+        notificationService.getUnreadCount()
+      ]);
+      if (listRes.status === 'fulfilled') {
+        const list = Array.isArray(listRes.value?.data)
+          ? listRes.value.data
+          : (listRes.value?.data?.notifications || []);
+        setNotifications(list);
+      }
+      if (countRes.status === 'fulfilled') {
+        setUnreadCount(countRes.value?.data?.unreadCount || 0);
+      }
+    } catch (err) {
+      console.warn('Failed to fetch notifications:', err);
+    }
+  };
+
+  useEffect(() => {
+    fetchNotifications();
+  }, [user]);
+
+  const handleMarkRead = async (id, e) => {
+    e.stopPropagation();
+    try {
+      await notificationService.markAsRead(id);
+      await fetchNotifications();
+    } catch {}
+  };
+
+  const handleMarkAllRead = async () => {
+    try {
+      await notificationService.markAllAsRead();
+      await fetchNotifications();
+    } catch {}
+  };
 
   const getDashboardPath = () => {
     if (!user) return '/login';
@@ -160,8 +206,134 @@ export const Navbar = () => {
 
           <LanguageSwitcher />
 
-          {/* Active User Indicator */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          {/* Notifications & Active User Indicator */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', position: 'relative' }}>
+            {/* Notification Bell */}
+            {user && (
+              <div style={{ position: 'relative' }}>
+                <button
+                  type="button"
+                  onClick={() => setNotifOpen(!notifOpen)}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    color: 'var(--color-primary)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    padding: '0.4rem',
+                    borderRadius: 'var(--radius-sm)',
+                    position: 'relative'
+                  }}
+                  title="Notifications & Alerts"
+                >
+                  <Bell size={20} />
+                  {unreadCount > 0 && (
+                    <span style={{
+                      position: 'absolute',
+                      top: '2px',
+                      right: '2px',
+                      backgroundColor: 'var(--color-emergency)',
+                      color: '#ffffff',
+                      fontSize: '0.65rem',
+                      fontWeight: 700,
+                      borderRadius: '50%',
+                      width: '16px',
+                      height: '16px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      lineHeight: 1
+                    }}>
+                      {unreadCount}
+                    </span>
+                  )}
+                </button>
+
+                {/* Notifications Dropdown */}
+                {notifOpen && (
+                  <div style={{
+                    position: 'absolute',
+                    right: 0,
+                    top: 'calc(100% + 8px)',
+                    width: '320px',
+                    backgroundColor: '#ffffff',
+                    border: '1px solid var(--color-border)',
+                    borderRadius: 'var(--radius-md)',
+                    boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
+                    zIndex: 100,
+                    padding: '0.75rem',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '0.5rem'
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--color-border)', paddingBottom: '0.5rem' }}>
+                      <strong style={{ fontSize: '0.9rem', color: 'var(--color-primary)' }}>
+                        Notifications ({notifications.length})
+                      </strong>
+                      {unreadCount > 0 && (
+                        <button
+                          type="button"
+                          onClick={handleMarkAllRead}
+                          style={{
+                            background: 'none',
+                            border: 'none',
+                            color: 'var(--color-secondary)',
+                            fontSize: '0.75rem',
+                            fontWeight: 600,
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.2rem'
+                          }}
+                        >
+                          <CheckCheck size={13} /> Mark all read
+                        </button>
+                      )}
+                    </div>
+
+                    <div style={{ maxHeight: '280px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                      {notifications.length === 0 ? (
+                        <p style={{ fontSize: '0.825rem', color: 'var(--color-text-muted)', textAlign: 'center', margin: '1rem 0' }}>
+                          No notifications at this time.
+                        </p>
+                      ) : (
+                        notifications.map((n) => (
+                          <div
+                            key={n._id || n.id}
+                            style={{
+                              padding: '0.5rem',
+                              borderRadius: 'var(--radius-sm)',
+                              backgroundColor: n.isRead ? 'var(--color-bg-main)' : '#f0fdf4',
+                              borderLeft: n.isRead ? '2px solid transparent' : '2px solid var(--color-success)',
+                              fontSize: '0.8rem',
+                              display: 'flex',
+                              flexDirection: 'column',
+                              gap: '0.2rem'
+                            }}
+                          >
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                              <strong style={{ color: 'var(--color-primary)' }}>{n.title}</strong>
+                              {!n.isRead && (
+                                <button
+                                  type="button"
+                                  onClick={(e) => handleMarkRead(n._id || n.id, e)}
+                                  style={{ background: 'none', border: 'none', color: 'var(--color-secondary)', fontSize: '0.7rem', cursor: 'pointer', padding: 0 }}
+                                >
+                                  Read
+                                </button>
+                              )}
+                            </div>
+                            <span style={{ color: 'var(--color-text-secondary)', lineHeight: 1.4 }}>{n.message}</span>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
             <Link
               to={getDashboardPath()}
               className="btn btn-secondary"

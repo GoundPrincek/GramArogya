@@ -52,11 +52,14 @@ app.get('/api/health', (req, res) => {
   const dbStates = ['disconnected', 'connected', 'connecting', 'disconnecting'];
   const stateStr = dbStates[mongoose.connection.readyState] || 'unknown';
 
-  res.status(200).json({
-    success: true,
-    message: 'GramArogya Connect API is operational',
+  const isHealthy = dbConnected;
+  res.status(isHealthy ? 200 : 503).json({
+    success: isHealthy,
+    message: isHealthy
+      ? 'GramArogya Connect API is operational'
+      : 'GramArogya Connect API is running with degraded database connectivity',
     data: {
-      status: 'healthy',
+      status: isHealthy ? 'healthy' : 'unhealthy',
       service: 'GramArogyaConnect-Backend',
       uptime: process.uptime(),
       environment: config.nodeEnv,

@@ -55,11 +55,20 @@ export const Login = () => {
     setIsSubmitting(true);
     setErrorMessage('');
     try {
-      await login(data);
-      const redirectPath = location.state?.from?.pathname || '/patient';
+      const res = await login(data);
+      const loggedInUser = res?.data?.user || res?.data;
+      const role = loggedInUser?.role || 'patient';
+      let defaultPath = '/patient';
+      if (['staff', 'doctor', 'asha_worker'].includes(role)) {
+        defaultPath = '/staff';
+      } else if (role === 'admin') {
+        defaultPath = '/admin';
+      }
+
+      const redirectPath = location.state?.from?.pathname || defaultPath;
       navigate(redirectPath, { replace: true });
     } catch (err) {
-      setErrorMessage(err.message || 'Login failed. Please verify credentials.');
+      setErrorMessage(err.response?.data?.message || err.message || 'Login failed. Please verify credentials.');
     } finally {
       setIsSubmitting(false);
     }

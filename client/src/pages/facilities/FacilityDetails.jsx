@@ -35,7 +35,7 @@ export const FacilityDetails = () => {
         setLoading(true);
         const res = await facilityService.getFacilityById(id);
         if (res?.data) {
-          setFacility(res.data);
+          setFacility(res.data.facility || res.data);
         }
       } catch (err) {
         console.error('Error fetching facility details:', err);

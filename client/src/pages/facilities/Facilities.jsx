@@ -47,7 +47,8 @@ export const Facilities = () => {
         sortBy
       });
       if (res?.data) {
-        setFacilities(res.data);
+        const list = Array.isArray(res.data) ? res.data : (res.data.facilities || []);
+        setFacilities(list);
       }
     } catch (err) {
       console.error('Error fetching facilities:', err);

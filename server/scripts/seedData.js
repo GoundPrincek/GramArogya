@@ -146,10 +146,15 @@ const sampleFacilities = [
   }
 ];
 
+const sanitizeUri = (rawUri) => {
+  if (!rawUri) return '<empty>';
+  return rawUri.replace(/\/\/[^:]+:[^@]+@/, '//***:***@');
+};
+
 const seedDatabase = async () => {
   try {
-    console.log(`[Seeder] Connecting to MongoDB at ${config.mongodbUri}...`);
-    await mongoose.connect(config.mongodbUri);
+    console.log(`[Seeder] Connecting to MongoDB at ${sanitizeUri(config.mongodbUri)}...`);
+    await mongoose.connect(config.mongodbUri, { serverSelectionTimeoutMS: 20000 });
     console.log('[Seeder] Connected successfully.');
 
     // 1. Seed Facilities

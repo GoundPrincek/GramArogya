@@ -73,7 +73,7 @@ export const Register = () => {
       setLanguage(data.preferredLanguage);
       navigate('/patient');
     } catch (err) {
-      setErrorMessage(err.message || 'Registration failed. Please try again.');
+      setErrorMessage(err.response?.data?.message || err.message || 'Registration failed. Please try again.');
     } finally {
       setIsSubmitting(false);
     }

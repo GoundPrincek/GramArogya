@@ -4,6 +4,14 @@ const config = require('./env');
 let isConnected = false;
 
 /**
+ * Sanitizes MongoDB URI to prevent logging sensitive credentials
+ */
+const sanitizeUri = (rawUri) => {
+  if (!rawUri) return '<empty>';
+  return rawUri.replace(/\/\/[^:]+:[^@]+@/, '//***:***@');
+};
+
+/**
  * Connect to MongoDB using Mongoose
  * Handles initial connection, lifecycle events, and graceful termination
  */
@@ -15,18 +23,24 @@ const connectDB = async (customUri) => {
     return mongoose.connection;
   }
 
+  if (!uri) {
+    isConnected = false;
+    console.error('[Database Error] No MONGODB_URI configured. Please set MONGODB_URI in server/.env');
+    return null;
+  }
+
   try {
     const conn = await mongoose.connect(uri, {
       autoIndex: true,
-      serverSelectionTimeoutMS: 5000 // 5s timeout so startup doesn't hang if Mongo is unreachable
+      serverSelectionTimeoutMS: 20000 // 20s timeout for reliable Atlas cloud replica-set discovery
     });
 
     isConnected = true;
-    console.log(`[Database] MongoDB Connected: ${conn.connection.host}/${conn.connection.name}`);
+    console.log(`[Database] MongoDB Connected successfully: ${conn.connection.host}/${conn.connection.name}`);
     return conn;
   } catch (error) {
     isConnected = false;
-    console.error(`[Database Error] Could not connect to MongoDB at ${uri}`);
+    console.error(`[Database Error] Could not connect to MongoDB at ${sanitizeUri(uri)}`);
     console.error(`[Database Error Details]: ${error.message}`);
 
     if (config.nodeEnv === 'production') {
