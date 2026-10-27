@@ -1,87 +1,82 @@
 import React, { createContext, useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import authService from '../services/authService';
-import en from '../locales/en.json';
-import mr from '../locales/mr.json';
-import hi from '../locales/hi.json';
+import {
+  getStoredCurrentUser,
+  setStoredCurrentUser,
+  resetDemoData
+} from '../services/storageService';
+import { MOCK_USERS } from '../data/mockUsers';
 
 export const AuthContext = createContext(null);
 
-const translations = { en, mr, hi };
-
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [language, setLanguage] = useState(localStorage.getItem('gram_arogya_lang') || 'mr');
+  const { t, i18n } = useTranslation();
+  const [user, setUser] = useState(() => getStoredCurrentUser());
+  const [loading, setLoading] = useState(false);
+  const [language, setLanguageState] = useState(() => i18n.language || 'mr');
 
+  // Sync state when local storage changes
   useEffect(() => {
-    const initAuth = async () => {
-      const token = localStorage.getItem('gram_arogya_token');
-      if (token) {
-        try {
-          const response = await authService.getCurrentUser();
-          if (response?.data) {
-            setUser(response.data);
-            if (response.data.preferredLanguage) {
-              setLanguage(response.data.preferredLanguage);
-            }
-          }
-        } catch {
-          authService.logout();
-          setUser(null);
-        }
-      }
-      setLoading(false);
+    const handleStorageChange = () => {
+      setUser(getStoredCurrentUser());
     };
 
-    initAuth();
+    window.addEventListener('gram_arogya_storage_changed', handleStorageChange);
+    return () => {
+      window.removeEventListener('gram_arogya_storage_changed', handleStorageChange);
+    };
   }, []);
 
   const changeLanguage = (lang) => {
-    setLanguage(lang);
+    i18n.changeLanguage(lang);
+    setLanguageState(lang);
     localStorage.setItem('gram_arogya_lang', lang);
   };
 
-  /**
-   * Simple dot-notation translation accessor
-   * Example: t('nav.home') -> 'मुख्यपृष्ठ'
-   */
-  const t = (key) => {
-    const keys = key.split('.');
-    let current = translations[language] || translations.en;
-    for (const k of keys) {
-      if (current && current[k] !== undefined) {
-        current = current[k];
-      } else {
-        // fallback to english
-        let fallback = translations.en;
-        for (const fbKey of keys) {
-          fallback = fallback?.[fbKey];
-        }
-        return fallback || key;
-      }
-    }
-    return current;
-  };
-
   const login = async (credentials) => {
-    const response = await authService.login(credentials);
-    if (response?.data?.user) {
-      setUser(response.data.user);
+    setLoading(true);
+    try {
+      const res = await authService.login(credentials);
+      if (res?.data?.user) {
+        setUser(res.data.user);
+      }
+      return res;
+    } finally {
+      setLoading(false);
     }
-    return response;
   };
 
   const register = async (userData) => {
-    const response = await authService.register(userData);
-    if (response?.data?.user) {
-      setUser(response.data.user);
+    setLoading(true);
+    try {
+      const res = await authService.register(userData);
+      if (res?.data?.user) {
+        setUser(res.data.user);
+      }
+      return res;
+    } finally {
+      setLoading(false);
     }
-    return response;
   };
 
   const logout = () => {
     authService.logout();
-    setUser(null);
+    // Default back to guest or citizen
+    const citizen = MOCK_USERS[0];
+    setStoredCurrentUser(citizen);
+    setUser(citizen);
+  };
+
+  const switchDemoRole = (role) => {
+    const found = MOCK_USERS.find((u) => u.role === role) || MOCK_USERS[0];
+    setStoredCurrentUser(found);
+    setUser(found);
+  };
+
+  const resetAllDemoData = () => {
+    resetDemoData();
+    setUser(MOCK_USERS[0]);
   };
 
   return (
@@ -95,6 +90,8 @@ export const AuthProvider = ({ children }) => {
         login,
         register,
         logout,
+        switchDemoRole,
+        resetAllDemoData,
         isAuthenticated: !!user
       }}
     >

@@ -13,6 +13,16 @@ body {
   min-height: 100vh;
 }
 
+/* Accessible Focus Styling */
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
 a {
   color: inherit;
   text-decoration: none;
@@ -46,33 +56,12 @@ input, select, textarea {
   border-width: 0;
 }
 
-/* Badge Utility */
-.badge {
-  display: inline-flex;
-  align-items: center;
-  padding: 0.25rem 0.65rem;
-  font-size: var(--font-size-xs);
-  font-weight: 600;
-  border-radius: var(--radius-full);
-  text-transform: uppercase;
-}
-
-.badge-emergency {
-  background-color: var(--color-emergency-bg);
-  color: var(--color-emergency);
-}
-
-.badge-warning {
-  background-color: var(--color-warning-bg);
-  color: var(--color-warning);
-}
-
-.badge-success {
-  background-color: var(--color-success-bg);
-  color: var(--color-success);
-}
-
-.badge-info {
-  background-color: var(--color-info-bg);
-  color: var(--color-info);
+/* Reduced Motion Preference */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
